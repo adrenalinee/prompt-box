@@ -1,14 +1,14 @@
 package mystix.prompt
 
-import mystix.prompt.data.LlmCallStatus
-import mystix.prompt.data.entity.LlmCallLog
-import mystix.prompt.data.repo.DefaultLlmCallOptionsRepository
-import mystix.prompt.data.repo.LlmApiKeyRepository
-import mystix.prompt.data.repo.LlmCallLogRepository
-import mystix.prompt.data.repo.LlmModelRepository
-import mystix.prompt.data.repo.LlmVendorRepository
-import mystix.prompt.data.repo.WorkspaceRepository
-import mystix.prompt.service.LlmCallLogTxService
+import malibu.llm.prompt.data.LlmCallStatus
+import malibu.llm.prompt.data.entity.LlmCallLog
+import malibu.llm.prompt.data.repo.DefaultLlmCallOptionsRepository
+import malibu.llm.prompt.data.repo.LlmApiKeyRepository
+import malibu.llm.prompt.data.repo.LlmCallLogRepository
+import malibu.llm.prompt.data.repo.LlmModelRepository
+import malibu.llm.prompt.data.repo.LlmVendorRepository
+import malibu.llm.prompt.data.repo.WorkspaceRepository
+import malibu.llm.prompt.service.LlmCallLogTxService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest

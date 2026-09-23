@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The build is a Gradle multi-project:
 
-- root (`ai.prompt-box:prompt`) — the Spring Boot web app under `src/main/kotlin/mystix/prompt`.
+- root (`ai.prompt-box:prompt`) — the Spring Boot web app under `src/main/kotlin/malibu/llm/prompt`.
 - `:llm-stream-client` (`ai.mystix:llm-stream-client`, currently `version = "3.4"`) — a publishable library that hides per-vendor streaming differences behind a single `LlmStreamClient` interface. The root project depends on it via `implementation(project(":llm-stream-client"))`. It is also published to GitHub Packages (`mystix-ai/maven-artifacts`).
 
 Two GitHub Packages repositories are used: `adrenalinee/tracer` (consumed at root) and `mystix-ai/maven-artifacts` (where `llm-stream-client` publishes). Both require `gpr.user`/`gpr.key` Gradle properties or `USERNAME`/`TOKEN` env vars.
@@ -33,7 +33,7 @@ The repo ships with a `Dockerfile` (multi-stage, Temurin 21, runs `./gradlew --n
 The end-to-end streaming flow is the most non-obvious part of the codebase. Reading `ExecuteStreamingOrchestrator` together with the `:llm-stream-client` module is the fastest way to get oriented.
 
 1. HTTP request reaches a controller in `mystix.prompt.api` (e.g. `PromptsController`).
-2. `ExecuteService` / `ExecuteStreamingOrchestrator` (`src/main/kotlin/mystix/prompt/ExecuteStreamingOrchestrator.kt`) resolves the workspace, model, API key, optional `PromptRef`, default + override options, and validates vendor-specific constraints (e.g. Google requires non-empty messages; system/developer roles aren't supported there).
+2. `ExecuteService` / `ExecuteStreamingOrchestrator` (`src/main/kotlin/malibu/llm/prompt`) resolves the workspace, model, API key, optional `PromptRef`, default + override options, and validates vendor-specific constraints (e.g. Google requires non-empty messages; system/developer roles aren't supported there).
 3. The orchestrator decrypts the stored API key via `security.ApiKeyCipher` and obtains a vendor-specific `LlmStreamClient` from `LlmStreamClientProvider.getOrCreate(apiKeyId, vendorName, apiKey)`. Clients are cached by `apiKeyId`.
 4. `client.stream(LlmStreamRequest)` returns a `Flux<LlmStreamEvent>`. The orchestrator wraps it to:
    - create an `LlmCallLog` row up front via `LlmCallLogTxService` and emit a synthetic `LogCreated` event,

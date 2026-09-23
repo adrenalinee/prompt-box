@@ -2,14 +2,14 @@ package mystix.prompt.llm.openai
 
 import com.openai.models.responses.ResponseOutputItemDoneEvent
 import com.openai.models.responses.ResponseStreamEvent
-import mystix.prompt.llm.exception.InputEmptyException
-import mystix.prompt.llm.exception.ToolArgumentsParseException
-import mystix.prompt.llm.exception.UnsupportedTextFormatException
-import mystix.prompt.llm.LlmMessageInputItem
-import mystix.prompt.llm.LlmStreamOptions
-import mystix.prompt.llm.LlmStreamEvent
-import mystix.prompt.llm.LlmStreamRequest
-import mystix.prompt.llm.ToolCallback
+import malibu.llm.streamclient.exception.InputEmptyException
+import malibu.llm.streamclient.exception.ToolArgumentsParseException
+import malibu.llm.streamclient.exception.UnsupportedTextFormatException
+import malibu.llm.streamclient.LlmMessageInputItem
+import malibu.llm.streamclient.LlmStreamOptions
+import malibu.llm.streamclient.LlmStreamEvent
+import malibu.llm.streamclient.LlmStreamRequest
+import malibu.llm.streamclient.ToolCallback
 import org.junit.jupiter.api.Test
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier

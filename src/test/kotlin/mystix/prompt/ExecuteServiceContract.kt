@@ -1,8 +1,13 @@
 package mystix.prompt
 
-import mystix.prompt.llm.ReasoningEffortType
-import mystix.prompt.llm.SummaryType
-import mystix.prompt.llm.VerbosityType
+import malibu.llm.prompt.ExecuteInputItem
+import malibu.llm.prompt.ExecuteOverrideOptions
+import malibu.llm.prompt.ExecuteRequest
+import malibu.llm.prompt.ExecuteResult
+import malibu.llm.prompt.data.InputRole
+import malibu.llm.streamclient.ReasoningEffortType
+import malibu.llm.streamclient.SummaryType
+import malibu.llm.streamclient.VerbosityType
 import java.util.*
 
 interface ExecuteService {
@@ -27,7 +32,7 @@ data class ExecuteResult(
 )
 
 data class ExecuteInputItem(
-    val role: mystix.prompt.data.InputRole,
+    val role: InputRole,
     val message: String,
 )
 

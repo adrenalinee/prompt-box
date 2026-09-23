@@ -1,9 +1,9 @@
 package mystix.prompt
 
-import mystix.prompt.llm.LlmStreamClient
-import mystix.prompt.llm.LlmStreamClientProvider
-import mystix.prompt.llm.LlmStreamEvent
-import mystix.prompt.llm.LlmStreamRequest
+import malibu.llm.streamclient.LlmStreamClient
+import malibu.llm.streamclient.LlmStreamClientProvider
+import malibu.llm.streamclient.LlmStreamEvent
+import malibu.llm.streamclient.LlmStreamRequest
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Primary

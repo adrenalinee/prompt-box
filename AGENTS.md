@@ -5,13 +5,13 @@
 
 This is a Gradle multi-project repository:
 
-- Root project `prompt-box` (`ai.prompt-box:prompt`): Spring Boot web application under `src/main/kotlin/mystix/prompt`.
+- Root project `prompt-box` (`ai.prompt-box:prompt`): Spring Boot web application under `src/main/kotlin/malibu/llm/prompt`.
 - Subproject `:llm-stream-client` (`ai.mystix:llm-stream-client`, currently `3.7-SNAPSHOT`): publishable streaming LLM client library used by the root app through `implementation(project(":llm-stream-client"))`.
 
 Top-level `dev/` and `main/` contain reference/source extracts and are not the primary application source sets unless a task explicitly points there.
 
 ## Project Structure
-Root app code lives in `src/main/kotlin/mystix/prompt`:
+Root app code lives in `src/main/kotlin/malibu/llm/prompt`:
 
 - `api`: Spring MVC controllers and API response helpers.
 - `service`: business services and transactional helpers.
@@ -23,7 +23,7 @@ Root app code lives in `src/main/kotlin/mystix/prompt`:
 
 Database migrations live in `src/main/resources/db/changelog`, with individual SQL changes under `src/main/resources/db/changelog/changes`. Add schema changes through Liquibase changelogs instead of relying on `ddl-auto`.
 
-The `:llm-stream-client` module lives under `llm-stream-client/src/main/kotlin/mystix/prompt/llm`:
+The `:llm-stream-client` module lives under `llm-stream-client/src/main/kotlin/malibu/llm`:
 
 - Common request/event/tool model: `LlmStreamModels.kt`, `LlmStreamEnums.kt`, `ToolDefinition(s).kt`, `LlmToolSpec.kt`, `ToolCallback.kt`.
 - Vendor clients: `openai`, `google`, and `xai` packages.

@@ -1,8 +1,12 @@
 package mystix.prompt
 
 import jakarta.persistence.EntityManager
-import mystix.prompt.data.PromptRefType
-import mystix.prompt.data.entity.*
+import malibu.llm.prompt.data.entity.LlmModel
+import malibu.llm.prompt.data.entity.Prompt
+import malibu.llm.prompt.data.entity.PromptRef
+import malibu.llm.prompt.data.PromptRefType
+import malibu.llm.prompt.data.entity.LlmVendor
+import malibu.llm.prompt.data.entity.Workspace
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest

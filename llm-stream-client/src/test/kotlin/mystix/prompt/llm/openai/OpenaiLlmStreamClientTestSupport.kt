@@ -7,8 +7,9 @@ import com.openai.models.responses.*
 import com.openai.services.async.ResponseServiceAsync
 import io.mockk.every
 import io.mockk.mockk
-import mystix.prompt.llm.LlmToolSpec
-import mystix.prompt.llm.LlmStreamRequest
+import malibu.llm.streamclient.LlmToolSpec
+import malibu.llm.streamclient.LlmStreamRequest
+import malibu.llm.streamclient.openai.OpenaiLlmStreamClient
 import tools.jackson.module.kotlin.KotlinModule
 import tools.jackson.module.kotlin.jsonMapper
 import java.util.*

@@ -1,15 +1,8 @@
 package mystix.prompt.llm.xai
 
-import mystix.prompt.llm.LlmMessageInputItem
-import mystix.prompt.llm.LlmFileSearchTool
-import mystix.prompt.llm.LlmStreamOptions
-import mystix.prompt.llm.LlmStreamEvent
-import mystix.prompt.llm.LlmStreamRequest
-import mystix.prompt.llm.ReasoningEffortType
-import mystix.prompt.llm.SummaryType
-import mystix.prompt.llm.ToolCallback
-import mystix.prompt.llm.exception.InputEmptyException
-import mystix.prompt.llm.xai.*
+import malibu.llm.streamclient.*
+import malibu.llm.streamclient.exception.InputEmptyException
+import malibu.llm.streamclient.xai.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

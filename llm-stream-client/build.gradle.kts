@@ -5,7 +5,7 @@ plugins {
     `maven-publish`
 }
 
-group = "malibu"
+group = "malibu.llm"
 version = "3.7-SNAPSHOT"
 
 dependencyManagement {

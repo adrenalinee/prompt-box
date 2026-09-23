@@ -1,6 +1,13 @@
 package mystix.prompt.llm.google
 
-import mystix.prompt.llm.google.*
+import malibu.llm.streamclient.google.GoogleApiException
+import malibu.llm.streamclient.google.GoogleContent
+import malibu.llm.streamclient.google.GoogleFunctionCallingMode
+import malibu.llm.streamclient.google.GoogleFunctionDeclaration
+import malibu.llm.streamclient.google.GoogleGenerateContentHttpClient
+import malibu.llm.streamclient.google.GoogleGenerateContentStreamRequest
+import malibu.llm.streamclient.google.GooglePart
+import malibu.llm.streamclient.google.GoogleStreamPart
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.jupiter.api.AfterEach
@@ -10,7 +17,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import tools.jackson.module.kotlin.KotlinModule
 import tools.jackson.module.kotlin.jsonMapper
-import kotlin.collections.get
 
 class GoogleGenerateContentHttpClientTest {
     private val jsonMapper = jsonMapper {

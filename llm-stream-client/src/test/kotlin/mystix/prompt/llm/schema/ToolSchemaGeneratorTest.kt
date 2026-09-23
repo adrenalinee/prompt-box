@@ -1,6 +1,7 @@
 package mystix.prompt.llm.schema
 
-import mystix.prompt.llm.ToolParam
+import malibu.llm.streamclient.ToolParam
+import malibu.llm.streamclient.schema.ToolSchemaGenerator
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue

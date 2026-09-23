@@ -1,10 +1,10 @@
 package mystix.prompt
 
-import mystix.prompt.data.LlmCallStatus
-import mystix.prompt.data.entity.LlmCallLog
-import mystix.prompt.data.entity.OutputItem
-import mystix.prompt.data.repo.LlmCallLogRepository
-import mystix.prompt.data.repo.OutputItemRepository
+import malibu.llm.prompt.data.LlmCallStatus
+import malibu.llm.prompt.data.entity.LlmCallLog
+import malibu.llm.prompt.data.entity.OutputItem
+import malibu.llm.prompt.data.repo.LlmCallLogRepository
+import malibu.llm.prompt.data.repo.OutputItemRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import java.util.UUID

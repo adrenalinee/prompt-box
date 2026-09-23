@@ -8,7 +8,7 @@ plugins {
     id("org.graalvm.buildtools.native") version "0.11.3"
 }
 
-group = "malibu"
+group = "malibu.llm"
 description = "prompt-box"
 
 //extra["springAiVersion"] = "2.0.0-M3"

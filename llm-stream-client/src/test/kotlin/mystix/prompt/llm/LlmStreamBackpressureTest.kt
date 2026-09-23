@@ -1,5 +1,8 @@
 package mystix.prompt.llm
 
+import malibu.llm.streamclient.DEFAULT_MAX_BUFFERED_EVENTS
+import malibu.llm.streamclient.LlmStreamOptions
+import malibu.llm.streamclient.effectiveMaxBufferedEvents
 import org.junit.jupiter.api.Test
 import reactor.core.publisher.Flux
 import reactor.core.publisher.FluxSink
@@ -16,7 +19,10 @@ class LlmStreamBackpressureTest {
 
         assertEquals(4, effectiveMaxBufferedEvents(override, base))
         assertEquals(16, effectiveMaxBufferedEvents(null, base))
-        assertEquals(DEFAULT_MAX_BUFFERED_EVENTS, effectiveMaxBufferedEvents(LlmStreamOptions(maxBufferedEvents = 0), null))
+        assertEquals(
+            DEFAULT_MAX_BUFFERED_EVENTS,
+            effectiveMaxBufferedEvents(LlmStreamOptions(maxBufferedEvents = 0), null)
+        )
     }
 
     @Test

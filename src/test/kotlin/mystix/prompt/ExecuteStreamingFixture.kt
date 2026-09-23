@@ -1,15 +1,15 @@
 package mystix.prompt
 
-import mystix.prompt.data.entity.DefaultLlmCallOptions
-import mystix.prompt.data.entity.LlmApiKey
-import mystix.prompt.data.entity.LlmModel
-import mystix.prompt.data.entity.LlmVendor
-import mystix.prompt.data.entity.Workspace
-import mystix.prompt.data.repo.DefaultLlmCallOptionsRepository
-import mystix.prompt.data.repo.LlmApiKeyRepository
-import mystix.prompt.data.repo.LlmModelRepository
-import mystix.prompt.data.repo.LlmVendorRepository
-import mystix.prompt.data.repo.WorkspaceRepository
+import malibu.llm.prompt.data.entity.DefaultLlmCallOptions
+import malibu.llm.prompt.data.entity.LlmApiKey
+import malibu.llm.prompt.data.entity.LlmModel
+import malibu.llm.prompt.data.entity.LlmVendor
+import malibu.llm.prompt.data.entity.Workspace
+import malibu.llm.prompt.data.repo.DefaultLlmCallOptionsRepository
+import malibu.llm.prompt.data.repo.LlmApiKeyRepository
+import malibu.llm.prompt.data.repo.LlmModelRepository
+import malibu.llm.prompt.data.repo.LlmVendorRepository
+import malibu.llm.prompt.data.repo.WorkspaceRepository
 
 data class StreamingFixture(
     val workspace: Workspace,

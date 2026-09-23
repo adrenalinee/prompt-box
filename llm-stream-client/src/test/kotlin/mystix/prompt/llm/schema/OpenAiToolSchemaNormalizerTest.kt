@@ -1,5 +1,6 @@
 package mystix.prompt.llm.schema
 
+import malibu.llm.streamclient.schema.OpenAiToolSchemaNormalizer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
