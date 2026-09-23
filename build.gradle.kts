@@ -8,8 +8,8 @@ plugins {
     id("org.graalvm.buildtools.native") version "0.11.3"
 }
 
-group = "ai.prompt-box"
-description = "prompt"
+group = "malibu"
+description = "prompt-box"
 
 //extra["springAiVersion"] = "2.0.0-M3"
 
@@ -59,7 +59,7 @@ dependencies {
 //    implementation("org.springframework.boot:spring-boot-starter-webclient")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
+implementation("org.jetbrains.kotlin:kotlin-reflect")
 //    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 //    implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("io.projectreactor:reactor-core")

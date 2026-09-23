@@ -5,7 +5,7 @@ plugins {
     `maven-publish`
 }
 
-group = "ai.mystix"
+group = "malibu"
 version = "3.7-SNAPSHOT"
 
 dependencyManagement {

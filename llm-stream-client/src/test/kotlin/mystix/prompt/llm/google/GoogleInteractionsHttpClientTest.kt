@@ -111,7 +111,7 @@ class GoogleInteractionsHttpClientTest {
 
         val recorded = server.takeRequest()
         assertEquals("POST", recorded.method)
-        assertEquals("/v1beta/interactions", recorded.path)
+        assertEquals("/interactions", recorded.path)
         assertEquals("test-key", recorded.getHeader("x-goog-api-key"))
         assertEquals("2026-05-20", recorded.getHeader("Api-Revision"))
 
