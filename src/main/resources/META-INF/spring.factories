@@ -1,2 +1,2 @@
 org.springframework.test.context.ContextCustomizerFactory=\
-mystix.prompt.config.EntityManagerExceptionTranslationContextCustomizerFactory
+malibu.llm.prompt.config.EntityManagerExceptionTranslationContextCustomizerFactory

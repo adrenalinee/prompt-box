@@ -37,9 +37,7 @@ class SecurityConfig {
     fun corsConfigurationSource(): CorsConfigurationSource {
         val config = CorsConfiguration()
         config.allowedOrigins = listOf(
-            "http://localhost:3002",
-            "https://prompt-box-dev-245695755093.asia-northeast3.run.app",
-            "https://promptbox.dev.mystix.ai"
+            "http://localhost:3030",
         )
         config.allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
         config.allowedHeaders = listOf("*")
