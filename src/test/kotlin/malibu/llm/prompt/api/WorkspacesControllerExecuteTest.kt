@@ -1,4 +1,4 @@
-package amlibu.llm.prompt.api
+package malibu.llm.prompt.api
 
 import io.swagger.v3.oas.annotations.Operation
 import io.mockk.every

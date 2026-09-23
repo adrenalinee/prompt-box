@@ -1,4 +1,4 @@
-package amlibu.llm.prompt
+package malibu.llm.prompt
 
 import malibu.llm.prompt.data.LlmCallStatus
 import malibu.llm.prompt.data.entity.LlmCallLog

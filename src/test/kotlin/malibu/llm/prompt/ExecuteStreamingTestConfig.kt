@@ -1,4 +1,4 @@
-package amlibu.llm.prompt
+package malibu.llm.prompt
 
 import malibu.llm.streamclient.LlmStreamClient
 import malibu.llm.streamclient.LlmStreamClientProvider

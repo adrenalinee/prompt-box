@@ -1,4 +1,4 @@
-package amlibu.llm.prompt
+package malibu.llm.prompt
 
 import jakarta.persistence.EntityManager
 import malibu.llm.prompt.data.entity.LlmModel

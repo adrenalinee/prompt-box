@@ -1,4 +1,4 @@
-package amlibu.llm.prompt
+package malibu.llm.prompt
 
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
