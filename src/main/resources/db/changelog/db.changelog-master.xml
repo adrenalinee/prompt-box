@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <include file="db/changelog/changes/001_init.sql" relativeToChangelogFile="false" />
+    <include file="db/changelog/changes/002_update_llm_call_log_status.sql" relativeToChangelogFile="false" />
+    <include file="db/changelog/changes/003_add_prompt_ref_source_tag.sql" relativeToChangelogFile="false" />
+    <include file="db/changelog/changes/004_add_llm_model_type.sql" relativeToChangelogFile="false" />
+    <include file="db/changelog/changes/005_add_output_item_type.sql" relativeToChangelogFile="false" />
+    <include file="db/changelog/changes/006_add_workspace_default_model.sql" relativeToChangelogFile="false" />
+    <include file="db/changelog/changes/007_add_output_item_part.sql" relativeToChangelogFile="false" />
+    <include file="db/changelog/changes/008_add_llm_call_log_tokens.sql" relativeToChangelogFile="false" />
+    <include file="db/changelog/changes/009_drop_llm_call_log_fks.sql" relativeToChangelogFile="false" />
+    <include file="db/changelog/changes/010_add_llm_api_key_last5.sql" relativeToChangelogFile="false" />
+    <include file="db/changelog/changes/011_add_google_option_columns.sql" relativeToChangelogFile="false" />
+    <include file="db/changelog/changes/012_update_llm_model_type_constraint.sql" relativeToChangelogFile="false" />
+
+</databaseChangeLog>

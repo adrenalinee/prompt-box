@@ -1,0 +1,2 @@
+org.springframework.test.context.ContextCustomizerFactory=\
+mystix.prompt.config.EntityManagerExceptionTranslationContextCustomizerFactory

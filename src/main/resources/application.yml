@@ -1,0 +1,14 @@
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # 구글이 토큰을 발행했음을 증명하는 주소
+          issuer-uri: https://accounts.google.com
+          # 구글의 공개키를 가져오는 주소 (자동으로 매핑되지만 명시 가능)
+          jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
+app:
+  security:
+    api-key-encryption:
+      # 32-byte key, base64-encoded
+      key: "d+SIog52SvIVBggnBbwLE2rVzV48lL1wPaFSWG4lnYk="

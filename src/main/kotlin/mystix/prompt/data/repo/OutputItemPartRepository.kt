@@ -1,0 +1,8 @@
+package mystix.prompt.data.repo
+
+import mystix.prompt.data.entity.OutputItemPart
+import org.springframework.data.jpa.repository.JpaRepository
+
+interface OutputItemPartRepository : JpaRepository<OutputItemPart, Long> {
+    fun findByOutputItemIdInOrderByPartIndexAsc(outputItemIds: List<Long>): List<OutputItemPart>
+}

@@ -1,0 +1,6 @@
+Dockerfile
+.dockerignore
+README.md
+.DS_Store
+*.pem
+build
