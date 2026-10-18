@@ -2,6 +2,8 @@ package malibu.llm.prompt.service
 
 import malibu.llm.prompt.data.InputRole
 import malibu.llm.prompt.data.PromptRefType
+import malibu.llm.prompt.data.dto.PromptRefSearchSpec
+import malibu.llm.prompt.data.dto.PromptSearchSpec
 import malibu.llm.prompt.data.entity.AdditionalInputItem
 import malibu.llm.prompt.data.entity.Prompt
 import malibu.llm.prompt.data.entity.PromptRef
@@ -43,25 +45,14 @@ class PromptService(
 
     @Transactional(readOnly = true)
     fun listPrompts(
-        workspaceId: UUID?,
-        name: String?,
+        searchSpec: PromptSearchSpec,
         pageable: Pageable,
     ): Page<Prompt> {
-        if (workspaceId != null) {
+        searchSpec.workspaceId?.let { workspaceId ->
             workspaceRepository.findById(workspaceId)
                 .orElseThrow { WorkspaceNotFoundException(workspaceId) }
         }
-
-        return when {
-            workspaceId != null && name.isNullOrBlank().not() ->
-                promptRepository.findByWorkspaceIdAndNameContainingIgnoreCase(workspaceId, name!!, pageable)
-            workspaceId != null ->
-                promptRepository.findByWorkspaceId(workspaceId, pageable)
-            name.isNullOrBlank().not() ->
-                promptRepository.findByNameContainingIgnoreCase(name!!, pageable)
-            else ->
-                promptRepository.findAll(pageable)
-        }
+        return promptRepository.searchPrompts(searchSpec, pageable)
     }
 
     @Transactional(readOnly = true)
@@ -195,24 +186,14 @@ class PromptService(
 
     @Transactional(readOnly = true)
     fun listRefs(
-        promptId: UUID,
-        type: PromptRefType?,
-        name: String?,
+        searchSpec: PromptRefSearchSpec,
         pageable: Pageable,
     ): Page<PromptRef> {
-        promptRepository.findById(promptId)
-            .orElseThrow { PromptNotFoundException(promptId) }
-
-        return when {
-            type != null && name.isNullOrBlank().not() ->
-                promptRefRepository.findByPromptIdAndTypeAndNameContainingIgnoreCase(promptId, type, name!!, pageable)
-            type != null ->
-                promptRefRepository.findByPromptIdAndType(promptId, type, pageable)
-            name.isNullOrBlank().not() ->
-                promptRefRepository.findByPromptIdAndNameContainingIgnoreCase(promptId, name!!, pageable)
-            else ->
-                promptRefRepository.findByPromptId(promptId, pageable)
+        searchSpec.promptId?.let { promptId ->
+            promptRepository.findById(promptId)
+                .orElseThrow { PromptNotFoundException(promptId) }
         }
+        return promptRefRepository.searchRefs(searchSpec, pageable)
     }
 
     @Transactional

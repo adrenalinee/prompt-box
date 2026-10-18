@@ -1,12 +1,24 @@
 package malibu.llm.prompt.api
 
-import malibu.llm.prompt.data.InputRole
 import malibu.llm.prompt.data.PromptRefType
+import malibu.llm.prompt.data.dto.AdditionalInputCreateRequest
+import malibu.llm.prompt.data.dto.AdditionalInputItemResponse
+import malibu.llm.prompt.data.dto.AdditionalInputRequest
+import malibu.llm.prompt.data.dto.AdditionalInputUpdateRequest
+import malibu.llm.prompt.data.dto.PromptCreateRequest
+import malibu.llm.prompt.data.dto.PromptRefCreateRequest
+import malibu.llm.prompt.data.dto.PromptRefResponse
+import malibu.llm.prompt.data.dto.PromptRefSearchSpec
+import malibu.llm.prompt.data.dto.PromptRefUpdateRequest
+import malibu.llm.prompt.data.dto.PromptResponse
+import malibu.llm.prompt.data.dto.PromptSearchSpec
+import malibu.llm.prompt.data.dto.PromptUpdateRequest
 import malibu.llm.prompt.data.entity.AdditionalInputItem
 import malibu.llm.prompt.data.entity.Prompt
 import malibu.llm.prompt.data.entity.PromptRef
 import malibu.llm.prompt.service.AdditionalInputItemSpec
 import malibu.llm.prompt.service.PromptService
+import org.springdoc.core.annotations.ParameterObject
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
@@ -21,7 +33,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
-import java.time.Instant
 import java.util.UUID
 
 @RestController
@@ -46,11 +57,10 @@ class PromptsController(
 
     @GetMapping
     fun list(
-        @RequestParam(required = false) workspaceId: UUID?,
-        @RequestParam(required = false) name: String?,
+        @ParameterObject searchSpec: PromptSearchSpec,
         @PageableDefault(size = 20, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable,
     ): PageResponse<PromptResponse> =
-        promptService.listPrompts(workspaceId, name, pageable).toResponse { it.toResponse() }
+        promptService.listPrompts(searchSpec, pageable).toResponse { it.toResponse() }
 
     @GetMapping("/{promptId}")
     fun get(@PathVariable promptId: UUID): PromptResponse {
@@ -99,7 +109,12 @@ class PromptsController(
         @RequestParam(required = false) name: String?,
         @PageableDefault(size = 20, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable,
     ): PageResponse<PromptRefResponse> =
-        promptService.listRefs(promptId, type, name, pageable).toResponse { it.toResponse() }
+        promptService.listRefs(PromptRefSearchSpec(
+            promptId = promptId,
+            type = type,
+            name = name,
+        ), pageable)
+            .toResponse { it.toResponse() }
 
     @GetMapping("/{promptId}/refs/{refId}")
     fun getRef(
@@ -184,85 +199,6 @@ class PromptsController(
         promptService.deleteAdditionalInput(promptId, refId, additionalInputItemId)
     }
 }
-
-data class PromptCreateRequest(
-    val workspaceId: UUID,
-    val name: String,
-    val description: String? = null,
-    val instructions: String,
-    val additionalInputs: List<AdditionalInputRequest> = emptyList(),
-    val mainRefName: String = "main",
-)
-
-data class PromptUpdateRequest(
-    val name: String? = null,
-    val description: String? = null,
-    val defaultBranchRefId: Long? = null,
-    val latestTagRefId: Long? = null,
-)
-
-data class AdditionalInputRequest(
-    val position: Int?,
-    val role: InputRole,
-    val message: String,
-)
-
-data class PromptRefCreateRequest(
-    val name: String,
-    val type: PromptRefType,
-    val fromRefId: Long? = null,
-    val description: String? = null,
-)
-
-data class PromptRefUpdateRequest(
-    val name: String? = null,
-    val description: String? = null,
-    val instructions: String? = null,
-)
-
-data class PromptResponse(
-    val id: UUID,
-    val name: String,
-    val description: String?,
-    val workspaceId: UUID,
-    val defaultBranchRefId: Long?,
-    val latestTagRefId: Long?,
-    val createdAt: Instant?,
-    val updatedAt: Instant?,
-)
-
-data class PromptRefResponse(
-    val id: Long,
-    val promptId: UUID,
-    val name: String,
-    val type: PromptRefType,
-    val instructions: String,
-    val description: String?,
-    val sourceTagRefId: Long?,
-    val createdAt: Instant?,
-    val updatedAt: Instant?,
-)
-
-data class AdditionalInputItemResponse(
-    val id: Long,
-    val position: Int,
-    val role: InputRole,
-    val message: String,
-    val createdAt: Instant?,
-    val updatedAt: Instant?,
-)
-
-data class AdditionalInputCreateRequest(
-    val position: Int?,
-    val role: InputRole,
-    val message: String,
-)
-
-data class AdditionalInputUpdateRequest(
-    val position: Int? = null,
-    val role: InputRole? = null,
-    val message: String? = null,
-)
 
 fun Prompt.toResponse() = PromptResponse(
     id = requireNotNull(id),

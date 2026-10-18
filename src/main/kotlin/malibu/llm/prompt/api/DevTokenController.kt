@@ -1,6 +1,8 @@
 package malibu.llm.prompt.api
 
 import malibu.llm.prompt.config.LocalJwtProperties
+import malibu.llm.prompt.data.dto.DevTokenRequest
+import malibu.llm.prompt.data.dto.DevTokenResponse
 import org.springframework.context.annotation.Profile
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm
 import org.springframework.security.oauth2.jwt.JwsHeader
@@ -52,16 +54,3 @@ class DevTokenController(
         )
     }
 }
-
-data class DevTokenRequest(
-    val subject: String = "local-user",
-    val email: String = "local-user@localhost",
-    val name: String? = null,
-    val roles: List<String> = emptyList(),
-)
-
-data class DevTokenResponse(
-    val accessToken: String,
-    val tokenType: String,
-    val expiresAt: Instant,
-)

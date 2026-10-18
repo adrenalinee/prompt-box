@@ -3,8 +3,8 @@ package malibu.llm.prompt.api
 import io.swagger.v3.oas.annotations.Operation
 import io.mockk.every
 import io.mockk.mockk
-import malibu.llm.prompt.api.ExecuteApiRequest
-import malibu.llm.prompt.api.InputItemRequest
+import malibu.llm.prompt.data.dto.ExecuteApiRequest
+import malibu.llm.prompt.data.dto.InputItemRequest
 import malibu.llm.prompt.api.WorkspacesController
 import malibu.llm.prompt.ExecuteRequest
 import malibu.llm.prompt.ExecuteStreamingOrchestrator

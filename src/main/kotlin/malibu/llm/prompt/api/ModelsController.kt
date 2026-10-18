@@ -1,8 +1,12 @@
 package malibu.llm.prompt.api
 
-import malibu.llm.prompt.data.LlmModelType
+import malibu.llm.prompt.data.dto.LlmModelCreateRequest
+import malibu.llm.prompt.data.dto.LlmModelResponse
+import malibu.llm.prompt.data.dto.LlmModelSearchSpec
+import malibu.llm.prompt.data.dto.LlmModelUpdateRequest
 import malibu.llm.prompt.data.entity.LlmModel
 import malibu.llm.prompt.service.LlmCatalogService
+import org.springdoc.core.annotations.ParameterObject
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
@@ -14,11 +18,8 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
-import java.time.Instant
-import java.util.UUID
 
 @RestController
 @RequestMapping("/models")
@@ -44,11 +45,10 @@ class ModelsController(
 
     @GetMapping
     fun list(
-        @RequestParam(required = false) vendorId: UUID?,
-        @RequestParam(required = false) name: String?,
+        @ParameterObject searchSpec: LlmModelSearchSpec,
         @PageableDefault(size = 20, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable,
     ): PageResponse<LlmModelResponse> =
-        llmCatalogService.listModels(vendorId, name, pageable).toResponse { it.toResponse() }
+        llmCatalogService.listModels(searchSpec, pageable).toResponse { it.toResponse() }
 
     @GetMapping("/{modelId}")
     fun get(@PathVariable modelId: Long): LlmModelResponse {
@@ -79,42 +79,6 @@ class ModelsController(
         llmCatalogService.deleteModel(modelId)
     }
 }
-
-data class LlmModelCreateRequest(
-    val vendorId: UUID,
-    val name: String,
-    val modelKey: String,
-    val modelType: LlmModelType = LlmModelType.STANDARD,
-    val contextWindow: Long? = null,
-    val inputPrice: Long? = null,
-    val outputPrice: Long? = null,
-    val description: String? = null,
-)
-
-data class LlmModelUpdateRequest(
-    val vendorId: UUID? = null,
-    val name: String? = null,
-    val modelKey: String? = null,
-    val modelType: LlmModelType? = null,
-    val contextWindow: Long? = null,
-    val inputPrice: Long? = null,
-    val outputPrice: Long? = null,
-    val description: String? = null,
-)
-
-data class LlmModelResponse(
-    val id: Long,
-    val name: String,
-    val modelKey: String,
-    val modelType: LlmModelType,
-    val vendorId: UUID,
-    val contextWindow: Long?,
-    val inputPrice: Long?,
-    val outputPrice: Long?,
-    val description: String?,
-    val createdAt: Instant?,
-    val updatedAt: Instant?,
-)
 
 fun LlmModel.toResponse() = LlmModelResponse(
     id = id,

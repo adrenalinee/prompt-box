@@ -1,7 +1,12 @@
 package malibu.llm.prompt.api
 
+import malibu.llm.prompt.data.dto.LlmVendorCreateRequest
+import malibu.llm.prompt.data.dto.LlmVendorResponse
+import malibu.llm.prompt.data.dto.LlmVendorSearchSpec
+import malibu.llm.prompt.data.dto.LlmVendorUpdateRequest
 import malibu.llm.prompt.data.entity.LlmVendor
 import malibu.llm.prompt.service.LlmCatalogService
+import org.springdoc.core.annotations.ParameterObject
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
@@ -13,10 +18,8 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
-import java.time.Instant
 import java.util.UUID
 
 @RestController
@@ -27,10 +30,10 @@ class LlmVendorsController(
 
     @GetMapping
     fun list(
-        @RequestParam(required = false) name: String?,
+        @ParameterObject searchSpec: LlmVendorSearchSpec,
         @PageableDefault(size = 20, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable,
     ): PageResponse<LlmVendorResponse> =
-        llmCatalogService.listVendors(name, pageable).toResponse { it.toResponse() }
+        llmCatalogService.listVendors(searchSpec, pageable).toResponse { it.toResponse() }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -58,24 +61,6 @@ class LlmVendorsController(
         llmCatalogService.deleteVendor(vendorId)
     }
 }
-
-data class LlmVendorCreateRequest(
-    val name: String,
-    val description: String? = null,
-)
-
-data class LlmVendorUpdateRequest(
-    val name: String? = null,
-    val description: String? = null,
-)
-
-data class LlmVendorResponse(
-    val id: UUID,
-    val name: String,
-    val description: String?,
-    val createdAt: Instant?,
-    val updatedAt: Instant?,
-)
 
 private fun LlmVendor.toResponse() = LlmVendorResponse(
     id = requireNotNull(id),

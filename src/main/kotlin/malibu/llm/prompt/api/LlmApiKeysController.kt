@@ -1,7 +1,12 @@
 package malibu.llm.prompt.api
 
+import malibu.llm.prompt.data.dto.LlmApiKeyCreateRequest
+import malibu.llm.prompt.data.dto.LlmApiKeyResponse
+import malibu.llm.prompt.data.dto.LlmApiKeySearchSpec
+import malibu.llm.prompt.data.dto.LlmApiKeyUpdateRequest
 import malibu.llm.prompt.data.entity.LlmApiKey
 import malibu.llm.prompt.service.LlmCatalogService
+import org.springdoc.core.annotations.ParameterObject
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
@@ -13,10 +18,8 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
-import java.time.Instant
 import java.util.UUID
 
 @RestController
@@ -40,12 +43,10 @@ class LlmApiKeysController(
 
     @GetMapping
     fun list(
-        @RequestParam(required = false) workspaceId: UUID?,
-        @RequestParam(required = false) vendorId: UUID?,
-        @RequestParam(required = false) name: String?,
+        @ParameterObject searchSpec: LlmApiKeySearchSpec,
         @PageableDefault(size = 20, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable,
     ): PageResponse<LlmApiKeyResponse> =
-        llmCatalogService.listApiKeys(workspaceId, vendorId, name, pageable).toResponse { it.toResponse() }
+        llmCatalogService.listApiKeys(searchSpec, pageable).toResponse { it.toResponse() }
 
     @GetMapping("/{apiKeyId}")
     fun get(@PathVariable apiKeyId: UUID): LlmApiKeyResponse {
@@ -73,33 +74,6 @@ class LlmApiKeysController(
         llmCatalogService.deleteApiKey(apiKeyId)
     }
 }
-
-data class LlmApiKeyCreateRequest(
-    val workspaceId: UUID,
-    val vendorId: UUID,
-    val name: String,
-    val value: String,
-    val description: String? = null,
-)
-
-data class LlmApiKeyUpdateRequest(
-    val workspaceId: UUID? = null,
-    val vendorId: UUID? = null,
-    val name: String? = null,
-    val value: String? = null,
-    val description: String? = null,
-)
-
-data class LlmApiKeyResponse(
-    val id: UUID,
-    val workspaceId: UUID,
-    val vendorId: UUID,
-    val name: String,
-    val last5: String?,
-    val description: String?,
-    val createdAt: Instant?,
-    val updatedAt: Instant?,
-)
 
 fun LlmApiKey.toResponse() = LlmApiKeyResponse(
     id = requireNotNull(id),

@@ -4,7 +4,9 @@ import com.querydsl.core.types.EntityPath
 import com.querydsl.core.types.Expression
 import com.querydsl.core.types.Order
 import com.querydsl.core.types.OrderSpecifier
+import com.querydsl.core.types.dsl.BooleanExpression
 import com.querydsl.core.types.dsl.PathBuilder
+import com.querydsl.core.types.dsl.StringExpression
 import com.querydsl.jpa.impl.JPAQuery
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -32,6 +34,12 @@ fun Sort.toOrderSpecifiers(entityPath: EntityPath<*>): Array<OrderSpecifier<*>> 
         )
     }.toList().toTypedArray()
 }
+
+/**
+ * 검색어가 null 이거나 공백이면 null(조건 무시), 아니면 대소문자 무시 부분일치 조건을 만든다.
+ */
+fun StringExpression.containsIgnoreCaseOrNull(keyword: String?): BooleanExpression? =
+    keyword?.takeIf { it.isNotBlank() }?.let { containsIgnoreCase(it) }
 
 /**
  * contentQuery 에 정렬/페이징을 적용해 조회하고 Page 로 감싼다.

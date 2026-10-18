@@ -1,5 +1,6 @@
 package malibu.llm.prompt.service
 
+import malibu.llm.prompt.data.dto.WorkspaceSearchSpec
 import malibu.llm.prompt.data.entity.DefaultLlmCallOptions
 import malibu.llm.prompt.data.entity.Workspace
 import malibu.llm.prompt.data.repo.DefaultLlmCallOptionsRepository
@@ -31,11 +32,8 @@ class WorkspaceService(
 ) {
 
     @Transactional(readOnly = true)
-    fun list(name: String?, pageable: Pageable): Page<Workspace> {
-        if (name.isNullOrBlank()) {
-            return workspaceRepository.findAll(pageable)
-        }
-        return workspaceRepository.findByNameContainingIgnoreCase(name, pageable)
+    fun list(searchSpec: WorkspaceSearchSpec, pageable: Pageable): Page<Workspace> {
+        return workspaceRepository.searchWorkspaces(searchSpec, pageable)
     }
 
     @Transactional(readOnly = true)

@@ -15,6 +15,7 @@ import malibu.llm.prompt.data.entity.OutputItem
 import malibu.llm.prompt.data.entity.OutputItemPart
 import malibu.llm.prompt.service.LlmCallCancelService
 import malibu.llm.prompt.service.LlmCallLogService
+import org.springdoc.core.annotations.ParameterObject
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
@@ -31,7 +32,7 @@ class LlmCallsController(
 
     @GetMapping
     fun listLogs(
-        searchSpec: LlmCallSearchSpec,
+        @ParameterObject searchSpec: LlmCallSearchSpec,
         @PageableDefault(size = 20, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable,
     ): PageResponse<LlmCallLogResponse> =
         llmCallLogService.listLogs(searchSpec, pageable)

@@ -9,10 +9,25 @@ import malibu.llm.prompt.ExecuteInputItem
 import malibu.llm.prompt.ExecuteOverrideOptions
 import malibu.llm.prompt.ExecuteRequest
 import malibu.llm.prompt.ExecuteStreamingOrchestrator
-import malibu.llm.prompt.data.InputRole
 import malibu.llm.prompt.data.LlmCallStatus
+import malibu.llm.prompt.data.dto.DefaultOptionsRequest
+import malibu.llm.prompt.data.dto.DefaultOptionsResponse
+import malibu.llm.prompt.data.dto.ExecuteApiRequest
+import malibu.llm.prompt.data.dto.InputItemRequest
+import malibu.llm.prompt.data.dto.LlmApiKeyResponse
+import malibu.llm.prompt.data.dto.LlmApiKeySearchSpec
 import malibu.llm.prompt.data.dto.LlmCallLogResponse
 import malibu.llm.prompt.data.dto.LlmCallSearchSpec
+import malibu.llm.prompt.data.dto.LlmModelResponse
+import malibu.llm.prompt.data.dto.LlmModelSearchSpec
+import malibu.llm.prompt.data.dto.OverrideOptionsRequest
+import malibu.llm.prompt.data.dto.PromptResponse
+import malibu.llm.prompt.data.dto.PromptSearchSpec
+import malibu.llm.prompt.data.dto.WorkspaceCreateRequest
+import malibu.llm.prompt.data.dto.WorkspaceDetailResponse
+import malibu.llm.prompt.data.dto.WorkspaceResponse
+import malibu.llm.prompt.data.dto.WorkspaceSearchSpec
+import malibu.llm.prompt.data.dto.WorkspaceUpdateRequest
 import malibu.llm.prompt.data.entity.DefaultLlmCallOptions
 import malibu.llm.prompt.data.entity.Workspace
 import malibu.llm.prompt.service.LlmCallLogService
@@ -20,10 +35,8 @@ import malibu.llm.prompt.service.LlmCatalogService
 import malibu.llm.prompt.service.PromptService
 import malibu.llm.prompt.service.WorkspaceService
 import malibu.llm.streamclient.LlmStreamEvent
-import malibu.llm.streamclient.ReasoningEffortType
-import malibu.llm.streamclient.SummaryType
-import malibu.llm.streamclient.VerbosityType
 import mu.KotlinLogging
+import org.springdoc.core.annotations.ParameterObject
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
@@ -32,7 +45,6 @@ import org.springframework.http.MediaType
 import org.springframework.http.codec.ServerSentEvent
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Flux
-import java.time.Instant
 import java.util.*
 
 @RestController
@@ -49,10 +61,10 @@ class WorkspacesController(
 
     @GetMapping
     fun list(
-        @RequestParam(required = false) name: String?,
+        @ParameterObject searchSpec: WorkspaceSearchSpec,
         @PageableDefault(size = 20, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable,
     ): PageResponse<WorkspaceResponse> =
-        workspaceService.list(name, pageable).toResponse { it.toResponse() }
+        workspaceService.list(searchSpec, pageable).toResponse { it.toResponse() }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -96,16 +108,19 @@ class WorkspacesController(
         @RequestParam(required = false) name: String?,
         @PageableDefault(size = 20, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable,
     ): PageResponse<PromptResponse> =
-        promptService.listPrompts(workspaceId, name, pageable).toResponse { it.toResponse() }
+        promptService.listPrompts(PromptSearchSpec(
+            workspaceId = workspaceId,
+            name = name,
+        ), pageable)
+            .toResponse { it.toResponse() }
 
     @GetMapping("/{workspaceId}/models")
     fun listModels(
         @PathVariable workspaceId: UUID,
-        @RequestParam(required = false) vendorId: UUID?,
-        @RequestParam(required = false) name: String?,
+        @ParameterObject searchSpec: LlmModelSearchSpec,
         @PageableDefault(size = 20, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable,
     ): PageResponse<LlmModelResponse> =
-        llmCatalogService.listModelsForWorkspace(workspaceId, vendorId, name, pageable).toResponse { it.toResponse() }
+        llmCatalogService.listModelsForWorkspace(workspaceId, searchSpec, pageable).toResponse { it.toResponse() }
 
     @GetMapping("/{workspaceId}/llm-api-keys")
     fun listApiKeys(
@@ -114,7 +129,12 @@ class WorkspacesController(
         @RequestParam(required = false) name: String?,
         @PageableDefault(size = 20, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable,
     ): PageResponse<LlmApiKeyResponse> =
-        llmCatalogService.listApiKeys(workspaceId, vendorId, name, pageable).toResponse { it.toResponse() }
+        llmCatalogService.listApiKeys(LlmApiKeySearchSpec(
+            workspaceId = workspaceId,
+            vendorId = vendorId,
+            name = name,
+        ), pageable)
+            .toResponse { it.toResponse() }
 
     @GetMapping("/{workspaceId}/llm-calls")
     fun listLogs(
@@ -286,90 +306,6 @@ class WorkspacesController(
         return options.toResponse()
     }
 }
-
-data class WorkspaceCreateRequest(
-    val name: String,
-    val description: String? = null,
-    val defaultModelId: Long? = null,
-)
-
-data class WorkspaceUpdateRequest(
-    val name: String? = null,
-    val description: String? = null,
-    val defaultModelId: Long? = null,
-)
-
-data class WorkspaceResponse(
-    val id: UUID,
-    val name: String,
-    val description: String?,
-    val defaultModelId: Long?,
-    val createdAt: Instant?,
-    val updatedAt: Instant?,
-)
-
-data class WorkspaceDetailResponse(
-    val id: UUID,
-    val name: String,
-    val description: String?,
-    val defaultModelId: Long?,
-    val defaultLlmCallOptions: DefaultOptionsResponse?,
-    val createdAt: Instant?,
-    val updatedAt: Instant?,
-)
-
-data class DefaultOptionsRequest(
-    val temperature: Double? = null,
-    val topP: Double? = null,
-    val topK: Double? = null,
-    val includeThoughts: Boolean? = null,
-    val maxTokens: Long? = null,
-    val textFormat: String? = null,
-    val effort: ReasoningEffortType? = null,
-    val verbosity: VerbosityType? = null,
-    val summary: SummaryType? = null,
-)
-
-data class DefaultOptionsResponse(
-    val workspaceId: UUID,
-    val temperature: Double?,
-    val topP: Double?,
-    val topK: Double?,
-    val includeThoughts: Boolean?,
-    val maxTokens: Long?,
-    val textFormat: String?,
-    val effort: ReasoningEffortType?,
-    val verbosity: VerbosityType?,
-    val summary: SummaryType?,
-    val createdAt: Instant?,
-    val updatedAt: Instant?,
-)
-
-data class ExecuteApiRequest(
-    val llmModelId: Long,
-    val llmApiKeyId: UUID,
-    val promptRefId: Long? = null,
-    val rawInstructionsText: String? = null,
-    val inputItems: List<InputItemRequest> = emptyList(),
-    val overrideOptions: OverrideOptionsRequest? = null,
-)
-
-data class InputItemRequest(
-    val role: InputRole,
-    val message: String,
-)
-
-data class OverrideOptionsRequest(
-    val temperature: Double? = null,
-    val topP: Double? = null,
-    val topK: Double? = null,
-    val includeThoughts: Boolean? = null,
-    val maxTokens: Long? = null,
-    val textFormat: String? = null,
-    val effort: ReasoningEffortType? = null,
-    val verbosity: VerbosityType? = null,
-    val summary: SummaryType? = null,
-)
 
 private fun Workspace.toResponse() = WorkspaceResponse(
     id = requireNotNull(id),

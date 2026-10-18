@@ -1,6 +1,9 @@
 package malibu.llm.prompt.service
 
 import malibu.llm.prompt.data.LlmModelType
+import malibu.llm.prompt.data.dto.LlmApiKeySearchSpec
+import malibu.llm.prompt.data.dto.LlmModelSearchSpec
+import malibu.llm.prompt.data.dto.LlmVendorSearchSpec
 import malibu.llm.prompt.data.entity.LlmApiKey
 import malibu.llm.prompt.data.entity.LlmModel
 import malibu.llm.prompt.data.entity.LlmVendor
@@ -32,11 +35,8 @@ class LlmCatalogService(
 ) {
 
     @Transactional(readOnly = true)
-    fun listVendors(name: String?, pageable: Pageable): Page<LlmVendor> {
-        if (name.isNullOrBlank()) {
-            return llmVendorRepository.findAll(pageable)
-        }
-        return llmVendorRepository.findByNameContainingIgnoreCase(name, pageable)
+    fun listVendors(searchSpec: LlmVendorSearchSpec, pageable: Pageable): Page<LlmVendor> {
+        return llmVendorRepository.searchVendors(searchSpec, pageable)
     }
 
     @Transactional(readOnly = true)
@@ -114,36 +114,25 @@ class LlmCatalogService(
 
     @Transactional(readOnly = true)
     fun listModels(
-        vendorId: UUID?,
-        name: String?,
+        searchSpec: LlmModelSearchSpec,
         pageable: Pageable,
     ): Page<LlmModel> {
-        if (vendorId != null) {
+        searchSpec.vendorId?.let { vendorId ->
             llmVendorRepository.findById(vendorId)
                 .orElseThrow { VendorNotFoundException(vendorId) }
         }
-        if (vendorId != null && name.isNullOrBlank().not()) {
-            return llmModelRepository.findByLlmVendorIdAndNameContainingIgnoreCase(vendorId, name!!, pageable)
-        }
-        if (vendorId != null) {
-            return llmModelRepository.findByLlmVendorId(vendorId, pageable)
-        }
-        if (name.isNullOrBlank().not()) {
-            return llmModelRepository.findByNameContainingIgnoreCase(name!!, pageable)
-        }
-        return llmModelRepository.findAll(pageable)
+        return llmModelRepository.searchModels(searchSpec, pageable)
     }
 
     @Transactional(readOnly = true)
     fun listModelsForWorkspace(
         workspaceId: UUID,
-        vendorId: UUID?,
-        name: String?,
+        searchSpec: LlmModelSearchSpec,
         pageable: Pageable,
     ): Page<LlmModel> {
         workspaceRepository.findById(workspaceId)
             .orElseThrow { WorkspaceNotFoundException(workspaceId) }
-        return listModels(vendorId, name, pageable)
+        return listModels(searchSpec, pageable)
     }
 
     @Transactional(readOnly = true)
@@ -231,43 +220,18 @@ class LlmCatalogService(
 
     @Transactional(readOnly = true)
     fun listApiKeys(
-        workspaceId: UUID?,
-        vendorId: UUID?,
-        name: String?,
+        searchSpec: LlmApiKeySearchSpec,
         pageable: Pageable,
     ): Page<LlmApiKey> {
-        if (workspaceId != null) {
+        searchSpec.workspaceId?.let { workspaceId ->
             workspaceRepository.findById(workspaceId)
                 .orElseThrow { WorkspaceNotFoundException(workspaceId) }
         }
-        if (vendorId != null) {
+        searchSpec.vendorId?.let { vendorId ->
             llmVendorRepository.findById(vendorId)
                 .orElseThrow { VendorNotFoundException(vendorId) }
         }
-
-        return when {
-            workspaceId != null && vendorId != null && name.isNullOrBlank().not() ->
-                llmApiKeyRepository.findByWorkspaceIdAndLlmVendorIdAndNameContainingIgnoreCase(
-                    workspaceId,
-                    vendorId,
-                    name!!,
-                    pageable,
-                )
-            workspaceId != null && vendorId != null ->
-                llmApiKeyRepository.findByWorkspaceIdAndLlmVendorId(workspaceId, vendorId, pageable)
-            workspaceId != null && name.isNullOrBlank().not() ->
-                llmApiKeyRepository.findByWorkspaceIdAndNameContainingIgnoreCase(workspaceId, name!!, pageable)
-            workspaceId != null ->
-                llmApiKeyRepository.findByWorkspaceId(workspaceId, pageable)
-            vendorId != null && name.isNullOrBlank().not() ->
-                llmApiKeyRepository.findByLlmVendorIdAndNameContainingIgnoreCase(vendorId, name!!, pageable)
-            vendorId != null ->
-                llmApiKeyRepository.findByLlmVendorId(vendorId, pageable)
-            name.isNullOrBlank().not() ->
-                llmApiKeyRepository.findByNameContainingIgnoreCase(name!!, pageable)
-            else ->
-                llmApiKeyRepository.findAll(pageable)
-        }
+        return llmApiKeyRepository.searchApiKeys(searchSpec, pageable)
     }
 
     @Transactional(readOnly = true)
