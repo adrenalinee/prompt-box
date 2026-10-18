@@ -1,6 +1,7 @@
 package malibu.llm.prompt
 
 import jakarta.persistence.EntityManager
+import malibu.llm.prompt.config.QuerydslConfig
 import malibu.llm.prompt.data.entity.LlmModel
 import malibu.llm.prompt.data.entity.Prompt
 import malibu.llm.prompt.data.entity.PromptRef
@@ -10,6 +11,7 @@ import malibu.llm.prompt.data.entity.Workspace
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
+import org.springframework.context.annotation.Import
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.TestPropertySource
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional
 @DataJpaTest
 @TestPropertySource(properties = ["spring.jpa.hibernate.ddl-auto=create-drop"])
 @ContextConfiguration(classes = [TestcontainersConfig::class])
+@Import(QuerydslConfig::class)
 class UniqueConstraintsJpaTest(
     private val em: EntityManager,
 ) {

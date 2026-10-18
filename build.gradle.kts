@@ -3,6 +3,7 @@ plugins {
     kotlin("plugin.spring") version "2.2.21"
     kotlin("plugin.jpa") version "2.2.21"
     kotlin("plugin.noarg") version "2.2.21"
+    id("com.google.devtools.ksp") version "2.3.12"
     id("org.springframework.boot") version "4.0.3"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.graalvm.buildtools.native") version "0.11.3"
@@ -12,6 +13,7 @@ group = "malibu.llm"
 description = "prompt-box"
 
 //extra["springAiVersion"] = "2.0.0-M3"
+val querydslVersion = "7.7"
 
 java {
     toolchain {
@@ -54,6 +56,10 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
+
+    // querydsl (OpenFeign fork). Q 클래스는 KSP 로 build/generated/ksp 에 생성된다.
+    implementation("io.github.openfeign.querydsl:querydsl-jpa:$querydslVersion")
+    ksp("io.github.openfeign.querydsl:querydsl-ksp-codegen:$querydslVersion")
 
     implementation("org.springframework:spring-webflux")
 //    implementation("org.springframework.boot:spring-boot-starter-webclient")

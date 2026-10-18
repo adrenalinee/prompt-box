@@ -1,6 +1,7 @@
 package malibu.llm.prompt.service
 
 import malibu.llm.prompt.data.LlmCallStatus
+import malibu.llm.prompt.data.dto.LlmCallSearchSpec
 import malibu.llm.prompt.data.entity.InputItem
 import malibu.llm.prompt.data.entity.LlmCallLog
 import malibu.llm.prompt.data.entity.OutputItem
@@ -26,13 +27,10 @@ class LlmCallLogService(
 
     @Transactional(readOnly = true)
     fun listLogs(
-        workspaceId: UUID?,
-        modelId: Long?,
-        status: LlmCallStatus?,
-        promptId: UUID?,
+        searchSpec: LlmCallSearchSpec,
         pageable: Pageable,
     ): Page<LlmCallLog> {
-        return llmCallLogRepository.searchLogs(workspaceId, modelId, status, promptId, pageable)
+        return llmCallLogRepository.searchLogs(searchSpec, pageable)
     }
 
     @Transactional(readOnly = true)

@@ -1,21 +1,25 @@
 package malibu.llm.prompt.api
 
-import malibu.llm.prompt.data.InputRole
 import malibu.llm.prompt.data.LlmCallStatus
-import malibu.llm.prompt.data.OutputItemPartType
-import malibu.llm.prompt.data.OutputItemType
+import malibu.llm.prompt.data.dto.InputItemResponse
+import malibu.llm.prompt.data.dto.LlmCallCancelRequest
+import malibu.llm.prompt.data.dto.LlmCallLogDetailInfo
+import malibu.llm.prompt.data.dto.LlmCallLogDetailResponse
+import malibu.llm.prompt.data.dto.LlmCallLogResponse
+import malibu.llm.prompt.data.dto.LlmCallSearchSpec
+import malibu.llm.prompt.data.dto.OutputItemPartResponse
+import malibu.llm.prompt.data.dto.OutputItemResponse
 import malibu.llm.prompt.data.entity.InputItem
 import malibu.llm.prompt.data.entity.LlmCallLog
 import malibu.llm.prompt.data.entity.OutputItem
 import malibu.llm.prompt.data.entity.OutputItemPart
 import malibu.llm.prompt.service.LlmCallCancelService
 import malibu.llm.prompt.service.LlmCallLogService
-import org.springframework.http.HttpStatus
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
+import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
-import java.time.Instant
 import java.util.*
 
 @RestController
@@ -27,13 +31,10 @@ class LlmCallsController(
 
     @GetMapping
     fun listLogs(
-        @RequestParam(required = false) workspaceId: UUID?,
-        @RequestParam(required = false) modelId: Long?,
-        @RequestParam(required = false) status: LlmCallStatus?,
-        @RequestParam(required = false) promptId: UUID?,
+        searchSpec: LlmCallSearchSpec,
         @PageableDefault(size = 20, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable,
     ): PageResponse<LlmCallLogResponse> =
-        llmCallLogService.listLogs(workspaceId, modelId, status, promptId, pageable)
+        llmCallLogService.listLogs(searchSpec, pageable)
             .toResponse { it.toResponse() }
 
     @GetMapping("/{callLogId}")
@@ -61,74 +62,6 @@ class LlmCallsController(
         )
     }
 }
-
-data class LlmCallCancelRequest(
-    val reason: String? = null,
-)
-
-data class LlmCallLogResponse(
-    val id: UUID,
-    val workspaceId: UUID,
-    val llmModelId: Long,
-    val llmApiKeyId: UUID,
-    val promptRefId: Long?,
-    val elapsed: Long,
-    val status: LlmCallStatus,
-    val errorCode: String?,
-    val instructionsPreview: String?,
-    val createdAt: Instant?,
-)
-
-data class LlmCallLogDetailResponse(
-    val callLog: LlmCallLogDetailInfo,
-    val inputItems: List<InputItemResponse>,
-    val outputItems: List<OutputItemResponse>,
-)
-
-data class LlmCallLogDetailInfo(
-    val id: UUID,
-    val workspaceId: UUID,
-    val llmModelId: Long,
-    val llmApiKeyId: UUID,
-    val promptRefId: Long?,
-    val elapsed: Long,
-    val status: LlmCallStatus,
-    val errorCode: String?,
-    val errorMessage: String?,
-    val llmCallOptions: String?,
-    val instructions: String,
-    val determinedModel: String?,
-    val inputTokens: Long?,
-    val cachedTokens: Long?,
-    val outputTokens: Long?,
-    val reasoningTokens: Long?,
-    val totalTokens: Long?,
-    val createdAt: Instant?,
-)
-
-data class InputItemResponse(
-    val id: Long,
-    val position: Int,
-    val role: InputRole,
-    val renderedMessage: String,
-    val createdAt: Instant?,
-)
-
-data class OutputItemResponse(
-    val id: Long,
-    val position: Int,
-    val itemType: OutputItemType,
-    val parts: List<OutputItemPartResponse>,
-    val createdAt: Instant?,
-)
-
-data class OutputItemPartResponse(
-    val id: Long,
-    val partType: OutputItemPartType,
-    val partIndex: Long,
-    val text: String?,
-    val createdAt: Instant?,
-)
 
 fun LlmCallLog.toResponse() = LlmCallLogResponse(
     id = requireNotNull(id),

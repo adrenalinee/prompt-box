@@ -1,6 +1,7 @@
 package malibu.llm.prompt
 
 import malibu.llm.prompt.data.LlmCallStatus
+import malibu.llm.prompt.data.dto.LlmCallSearchSpec
 import malibu.llm.prompt.data.entity.LlmCallLog
 import malibu.llm.prompt.data.entity.OutputItem
 import malibu.llm.prompt.data.repo.LlmCallLogRepository
@@ -18,9 +19,9 @@ open class ExecuteStreamingTestSupport(
         val deadline = System.currentTimeMillis() + 2000
         var latest: LlmCallLog? = null
         while (System.currentTimeMillis() < deadline) {
-            val logs = llmCallLogRepository.findByWorkspaceId(
-                workspaceId,
-                PageRequest.of(0, 1, Sort.by("createdAt").descending())
+            val logs = llmCallLogRepository.searchLogs(
+                LlmCallSearchSpec(workspaceId = workspaceId),
+                pageable = PageRequest.of(0, 1, Sort.by("createdAt").descending()),
             )
             latest = logs.content.firstOrNull()
             if (latest != null && latest.status == status) {

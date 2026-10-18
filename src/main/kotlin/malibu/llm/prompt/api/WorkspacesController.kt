@@ -11,17 +11,19 @@ import malibu.llm.prompt.ExecuteRequest
 import malibu.llm.prompt.ExecuteStreamingOrchestrator
 import malibu.llm.prompt.data.InputRole
 import malibu.llm.prompt.data.LlmCallStatus
+import malibu.llm.prompt.data.dto.LlmCallLogResponse
+import malibu.llm.prompt.data.dto.LlmCallSearchSpec
 import malibu.llm.prompt.data.entity.DefaultLlmCallOptions
 import malibu.llm.prompt.data.entity.Workspace
 import malibu.llm.prompt.service.LlmCallLogService
 import malibu.llm.prompt.service.LlmCatalogService
 import malibu.llm.prompt.service.PromptService
 import malibu.llm.prompt.service.WorkspaceService
-import mu.KotlinLogging
 import malibu.llm.streamclient.LlmStreamEvent
 import malibu.llm.streamclient.ReasoningEffortType
 import malibu.llm.streamclient.SummaryType
 import malibu.llm.streamclient.VerbosityType
+import mu.KotlinLogging
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
@@ -122,7 +124,12 @@ class WorkspacesController(
         @RequestParam(required = false) promptId: UUID?,
         @PageableDefault(size = 20, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable,
     ): PageResponse<LlmCallLogResponse> =
-        llmCallLogService.listLogs(workspaceId, modelId, status, promptId, pageable)
+        llmCallLogService.listLogs(LlmCallSearchSpec(
+            workspaceId = workspaceId,
+            modelId = modelId,
+            status = status,
+            promptId = promptId,
+        ), pageable)
             .toResponse { it.toResponse() }
 
     @PostMapping("/{workspaceId}/llm-calls", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
