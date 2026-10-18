@@ -80,6 +80,7 @@ implementation("org.jetbrains.kotlin:kotlin-reflect")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     runtimeOnly("org.postgresql:postgresql")
+    runtimeOnly("com.h2database:h2")
     runtimeOnly("org.liquibase:liquibase-core")
 
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
