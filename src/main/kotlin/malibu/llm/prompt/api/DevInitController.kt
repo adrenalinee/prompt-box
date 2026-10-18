@@ -4,28 +4,44 @@ import malibu.llm.prompt.data.LlmModelType
 import malibu.llm.prompt.service.LlmCatalogService
 import malibu.llm.prompt.service.PromptService
 import malibu.llm.prompt.service.WorkspaceService
+import org.springframework.context.annotation.Profile
+import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 
+@Profile("local")
 @RestController
-class InitController(
+@RequestMapping("/dev")
+class DevInitController(
     private val workspaceService: WorkspaceService,
     private val llmCatalogService: LlmCatalogService,
     private val promptService: PromptService,
 ) {
 
     @Transactional
+    @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/init")
     fun init() {
         val workspace = workspaceService.create("test",null, null)
         val vendor = llmCatalogService.createVendor("openai", null)
+        llmCatalogService.createVendor("xai", null)
+        llmCatalogService.createVendor("google", null)
         llmCatalogService.createModel(
             vendorId = vendor.id!!,
-            name = "gpt-4.1-mini",
-            modelKey = "gpt-4.1-mini",
-            modelType = LlmModelType.STANDARD,
-            description = "GPT-4.1 mini는 명령어 추종 및 도구 호출에 탁월합니다. 100만 토큰의 컨텍스트 창을 제공하며, 추론 단계 없이 낮은 지연 시간을 자랑합니다."
+            name = "gpt-6-luna",
+            modelKey = "gpt-6-luna",
+            modelType = LlmModelType.REASONING,
+            description = "GPT-6 Luna는 집중적이고 대량의 작업을 처리하는 데 가장 효율적인 모델입니다."
+        )
+        llmCatalogService.createModel(
+            vendorId = vendor.id!!,
+            name = "gpt-5.6-luna",
+            modelKey = "gpt-5.6-luna",
+            modelType = LlmModelType.REASONING,
+            description = "GPT-5.6 Luna는 비용에 민감하고 대용량 워크로드를 위해 설계되었습니다."
         )
         llmCatalogService.createModel(
             vendorId = vendor.id!!,
@@ -33,6 +49,13 @@ class InitController(
             modelKey = "gpt-5-mini",
             modelType = LlmModelType.REASONING,
             description = "GPT-5 mini는 GPT-5보다 빠르고 비용 효율적인 버전입니다. 명확하게 정의된 작업과 정확한 프롬프트에 적합합니다."
+        )
+        llmCatalogService.createModel(
+            vendorId = vendor.id!!,
+            name = "gpt-6.1-sol",
+            modelKey = "gpt-6.1-sol",
+            modelType = LlmModelType.REASONING,
+            description = "GPT-6.1 Sol은 복잡한 코딩, 컴퓨터 사용 및 전문 작업에서 Astra에 버금가는 성능을 더 낮은 비용으로 제공합니다."
         )
 
         promptService.createPrompt(

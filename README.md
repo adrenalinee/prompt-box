@@ -39,7 +39,6 @@
   - function call 지원
 - prompt  platform 으로 진화
   - named prompt 를 다른 프로젝트에서 사용할 수 있게 지원해서 프롬프트 플랫폼화
-- vendor 지원
-  - google 지원 - 완료!
-  - grok 지원 - 완료!
+- vendor 추가 지원
+  - anthropic
 
