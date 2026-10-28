@@ -4,6 +4,7 @@ import malibu.llm.prompt.data.dto.LlmApiKeySearchSpec
 import malibu.llm.prompt.data.entity.LlmApiKey
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import java.util.UUID
 
 interface LlmApiKeyRepositoryCustom {
     /**
@@ -13,4 +14,9 @@ interface LlmApiKeyRepositoryCustom {
         searchSpec: LlmApiKeySearchSpec,
         pageable: Pageable,
     ): Page<LlmApiKey>
+
+    /**
+     * API 키가 속한 workspaceId. 없으면 null. (권한 검사용)
+     */
+    fun findWorkspaceIdById(apiKeyId: UUID): UUID?
 }

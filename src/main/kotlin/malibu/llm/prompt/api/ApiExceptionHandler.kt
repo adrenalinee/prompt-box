@@ -8,6 +8,7 @@ import malibu.llm.prompt.error.NotFoundException
 import mu.KotlinLogging
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.security.access.AccessDeniedException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import tools.jackson.databind.json.JsonMapper
@@ -44,6 +45,18 @@ class ApiExceptionHandler {
         response: HttpServletResponse,
     ) {
         writeErrorResponse(HttpStatus.CONFLICT, ex, request, response)
+    }
+
+    /**
+     * @PreAuthorize 거부. 여기서 잡지 않으면 바디 없는 403 이 응답된다.
+     */
+    @ExceptionHandler(AccessDeniedException::class)
+    fun handleAccessDenied(
+        ex: AccessDeniedException,
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+    ) {
+        writeErrorResponse(HttpStatus.FORBIDDEN, ex, request, response)
     }
 
     private fun writeErrorResponse(

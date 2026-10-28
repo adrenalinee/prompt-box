@@ -144,3 +144,35 @@ class CannotDeleteLatestTagException : ConflictException(
 class RefHasCallLogsException : ConflictException(
     message = "ref에 종속된 call log가 있습니다.",
 )
+
+class UserNotFoundException(identifier: String) : NotFoundException(
+    message = "사용자를 찾을 수 없습니다. user: $identifier",
+)
+
+class WorkspaceMemberNotFoundException(workspaceId: UUID, userId: UUID) : NotFoundException(
+    message = "워크스페이스 멤버를 찾을 수 없습니다. workspaceId: $workspaceId, userId: $userId",
+)
+
+class AmbiguousUserEmailException(email: String) : BadRequestException(
+    message = "같은 이메일을 쓰는 사용자가 여러 명입니다. userId 로 지정해주세요. email: $email",
+)
+
+class UserIdentifierRequiredException : BadRequestException(
+    message = "userId 또는 email 중 하나가 필요합니다.",
+)
+
+class CannotChangeOwnPlatformRoleException : BadRequestException(
+    message = "자신의 플랫폼 롤은 변경할 수 없습니다.",
+)
+
+class WorkspaceMemberAlreadyExistsException : ConflictException(
+    message = "이미 워크스페이스 멤버입니다.",
+)
+
+class LastWorkspaceAdminException : ConflictException(
+    message = "워크스페이스의 마지막 ADMIN 은 강등하거나 제거할 수 없습니다.",
+)
+
+class LastPlatformAdminException : ConflictException(
+    message = "마지막 플랫폼 ADMIN 은 강등할 수 없습니다.",
+)

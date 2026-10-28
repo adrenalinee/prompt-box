@@ -9,6 +9,7 @@ import malibu.llm.prompt.data.entity.QPromptRef.Companion.promptRef
 import malibu.llm.prompt.data.repo.support.fetchPage
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import java.util.UUID
 
 class LlmCallLogRepositoryImpl(
     private val queryFactory: JPAQueryFactory,
@@ -24,6 +25,12 @@ class LlmCallLogRepositoryImpl(
             .applySearchCondition(searchSpec)
         return content.fetchPage(pageable, llmCallLog, count)
     }
+
+    override fun findOwnershipById(callLogId: UUID): CallLogOwnership? =
+        queryFactory.select(llmCallLog.workspace.id, llmCallLog.userId).from(llmCallLog)
+            .where(llmCallLog.id.eq(callLogId))
+            .fetchOne()
+            ?.let { CallLogOwnership(workspaceId = requireNotNull(it.get(0, UUID::class.java)), userId = it.get(1, UUID::class.java)) }
 
     private fun <T> JPAQuery<T>.applySearchCondition(
         searchSpec: LlmCallSearchSpec,

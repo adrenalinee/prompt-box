@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.HttpStatus
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -28,6 +29,7 @@ class LlmApiKeysController(
     private val llmCatalogService: LlmCatalogService,
 ) {
 
+    @PreAuthorize("@wsAuthz.has(#request.workspaceId, 'ADMIN')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     fun create(@RequestBody request: LlmApiKeyCreateRequest): LlmApiKeyResponse {
@@ -41,6 +43,10 @@ class LlmApiKeysController(
         return apiKey.toResponse()
     }
 
+    /**
+     * workspaceId 를 지정하지 않으면 플랫폼 ADMIN 만 조회할 수 있다.
+     */
+    @PreAuthorize("@wsAuthz.has(#searchSpec.workspaceId, 'GUEST')")
     @GetMapping
     fun list(
         @ParameterObject searchSpec: LlmApiKeySearchSpec,
@@ -48,11 +54,16 @@ class LlmApiKeysController(
     ): PageResponse<LlmApiKeyResponse> =
         llmCatalogService.listApiKeys(searchSpec, pageable).toResponse { it.toResponse() }
 
+    @PreAuthorize("@wsAuthz.hasForApiKey(#apiKeyId, 'GUEST')")
     @GetMapping("/{apiKeyId}")
     fun get(@PathVariable apiKeyId: UUID): LlmApiKeyResponse {
         return llmCatalogService.getApiKey(apiKeyId).toResponse()
     }
 
+    /**
+     * 다른 워크스페이스로 옮기는 경우 원래 워크스페이스와 대상 워크스페이스 모두에서 ADMIN 이어야 한다.
+     */
+    @PreAuthorize("@wsAuthz.hasForApiKey(#apiKeyId, 'ADMIN') and (#request.workspaceId == null or @wsAuthz.has(#request.workspaceId, 'ADMIN'))")
     @PatchMapping("/{apiKeyId}")
     fun update(
         @PathVariable apiKeyId: UUID,
@@ -68,6 +79,7 @@ class LlmApiKeysController(
         ).toResponse()
     }
 
+    @PreAuthorize("@wsAuthz.hasForApiKey(#apiKeyId, 'ADMIN')")
     @DeleteMapping("/{apiKeyId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun delete(@PathVariable apiKeyId: UUID) {

@@ -114,4 +114,11 @@ class LlmCallLog(
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "workspace_id", nullable = false)
     var workspace: Workspace,
+
+    /**
+     * 실행한 사용자(app_user.id). 권한 도입 이전 로그는 null.
+     * - 다른 연관과 마찬가지로 FK 는 두지 않는다. (009 참고)
+     */
+    @Column(name = "user_id", nullable = true, columnDefinition = "uuid")
+    var userId: UUID? = null,
 ) : BaseTimestamps()

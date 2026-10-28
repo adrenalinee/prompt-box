@@ -9,6 +9,7 @@ import malibu.llm.prompt.data.repo.support.containsIgnoreCaseOrNull
 import malibu.llm.prompt.data.repo.support.fetchPage
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import java.util.UUID
 
 class LlmApiKeyRepositoryImpl(
     private val queryFactory: JPAQueryFactory,
@@ -24,6 +25,11 @@ class LlmApiKeyRepositoryImpl(
             .applySearchCondition(searchSpec)
         return content.fetchPage(pageable, llmApiKey, count)
     }
+
+    override fun findWorkspaceIdById(apiKeyId: UUID): UUID? =
+        queryFactory.select(llmApiKey.workspace.id).from(llmApiKey)
+            .where(llmApiKey.id.eq(apiKeyId))
+            .fetchOne()
 
     private fun <T> JPAQuery<T>.applySearchCondition(
         searchSpec: LlmApiKeySearchSpec,

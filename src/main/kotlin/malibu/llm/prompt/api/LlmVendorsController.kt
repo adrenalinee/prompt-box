@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.HttpStatus
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -28,6 +29,7 @@ class LlmVendorsController(
     private val llmCatalogService: LlmCatalogService,
 ) {
 
+    @PreAuthorize("hasRole('PLATFORM_USER')")
     @GetMapping
     fun list(
         @ParameterObject searchSpec: LlmVendorSearchSpec,
@@ -35,6 +37,7 @@ class LlmVendorsController(
     ): PageResponse<LlmVendorResponse> =
         llmCatalogService.listVendors(searchSpec, pageable).toResponse { it.toResponse() }
 
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     fun create(@RequestBody request: LlmVendorCreateRequest): LlmVendorResponse {
@@ -42,11 +45,13 @@ class LlmVendorsController(
         return vendor.toResponse()
     }
 
+    @PreAuthorize("hasRole('PLATFORM_USER')")
     @GetMapping("/{vendorId}")
     fun get(@PathVariable vendorId: UUID): LlmVendorResponse {
         return llmCatalogService.getVendor(vendorId).toResponse()
     }
 
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @PatchMapping("/{vendorId}")
     fun update(
         @PathVariable vendorId: UUID,
@@ -55,6 +60,7 @@ class LlmVendorsController(
         return llmCatalogService.updateVendor(vendorId, request.name, request.description).toResponse()
     }
 
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @DeleteMapping("/{vendorId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun delete(@PathVariable vendorId: UUID) {

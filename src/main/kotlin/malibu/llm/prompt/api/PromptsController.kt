@@ -23,6 +23,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.HttpStatus
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -41,6 +42,7 @@ class PromptsController(
     private val promptService: PromptService,
 ) {
 
+    @PreAuthorize("@wsAuthz.has(#request.workspaceId, 'USER')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     fun create(@RequestBody request: PromptCreateRequest): PromptResponse {
@@ -55,6 +57,10 @@ class PromptsController(
         return prompt.toResponse()
     }
 
+    /**
+     * workspaceId 를 지정하지 않으면 플랫폼 ADMIN 만 조회할 수 있다.
+     */
+    @PreAuthorize("@wsAuthz.has(#searchSpec.workspaceId, 'GUEST')")
     @GetMapping
     fun list(
         @ParameterObject searchSpec: PromptSearchSpec,
@@ -62,11 +68,13 @@ class PromptsController(
     ): PageResponse<PromptResponse> =
         promptService.listPrompts(searchSpec, pageable).toResponse { it.toResponse() }
 
+    @PreAuthorize("@wsAuthz.hasForPrompt(#promptId, 'GUEST')")
     @GetMapping("/{promptId}")
     fun get(@PathVariable promptId: UUID): PromptResponse {
         return promptService.getPrompt(promptId).toResponse()
     }
 
+    @PreAuthorize("@wsAuthz.hasForPrompt(#promptId, 'USER')")
     @PatchMapping("/{promptId}")
     fun update(
         @PathVariable promptId: UUID,
@@ -81,12 +89,14 @@ class PromptsController(
         ).toResponse()
     }
 
+    @PreAuthorize("@wsAuthz.hasForPrompt(#promptId, 'USER')")
     @DeleteMapping("/{promptId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun delete(@PathVariable promptId: UUID) {
         promptService.deletePrompt(promptId)
     }
 
+    @PreAuthorize("@wsAuthz.hasForPrompt(#promptId, 'USER')")
     @PostMapping("/{promptId}/refs")
     @ResponseStatus(HttpStatus.CREATED)
     fun createRef(
@@ -102,6 +112,7 @@ class PromptsController(
         ).toResponse()
     }
 
+    @PreAuthorize("@wsAuthz.hasForPrompt(#promptId, 'GUEST')")
     @GetMapping("/{promptId}/refs")
     fun listRefs(
         @PathVariable promptId: UUID,
@@ -116,6 +127,7 @@ class PromptsController(
         ), pageable)
             .toResponse { it.toResponse() }
 
+    @PreAuthorize("@wsAuthz.hasForPrompt(#promptId, 'GUEST')")
     @GetMapping("/{promptId}/refs/{refId}")
     fun getRef(
         @PathVariable promptId: UUID,
@@ -124,6 +136,7 @@ class PromptsController(
         return promptService.getRef(promptId, refId).toResponse()
     }
 
+    @PreAuthorize("@wsAuthz.hasForPrompt(#promptId, 'USER')")
     @PatchMapping("/{promptId}/refs/{refId}")
     fun updateRef(
         @PathVariable promptId: UUID,
@@ -139,6 +152,7 @@ class PromptsController(
         ).toResponse()
     }
 
+    @PreAuthorize("@wsAuthz.hasForPrompt(#promptId, 'USER')")
     @DeleteMapping("/{promptId}/refs/{refId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deleteRef(
@@ -148,6 +162,7 @@ class PromptsController(
         promptService.deleteRef(promptId, refId)
     }
 
+    @PreAuthorize("@wsAuthz.hasForPrompt(#promptId, 'USER')")
     @PostMapping("/{promptId}/refs/{refId}/additional-input-items")
     @ResponseStatus(HttpStatus.CREATED)
     fun addAdditionalInput(
@@ -164,6 +179,7 @@ class PromptsController(
         ).toResponse()
     }
 
+    @PreAuthorize("@wsAuthz.hasForPrompt(#promptId, 'GUEST')")
     @GetMapping("/{promptId}/refs/{refId}/additional-input-items")
     fun listAdditionalInputs(
         @PathVariable promptId: UUID,
@@ -172,6 +188,7 @@ class PromptsController(
     ): PageResponse<AdditionalInputItemResponse> =
         promptService.listAdditionalInputs(promptId, refId, pageable).toResponse { it.toResponse() }
 
+    @PreAuthorize("@wsAuthz.hasForPrompt(#promptId, 'USER')")
     @PatchMapping("/{promptId}/refs/{refId}/additional-input-items/{additionalInputItemId}")
     fun updateAdditionalInput(
         @PathVariable promptId: UUID,
@@ -189,6 +206,7 @@ class PromptsController(
         ).toResponse()
     }
 
+    @PreAuthorize("@wsAuthz.hasForPrompt(#promptId, 'USER')")
     @DeleteMapping("/{promptId}/refs/{refId}/additional-input-items/{additionalInputItemId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deleteAdditionalInput(

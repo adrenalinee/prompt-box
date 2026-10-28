@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.HttpStatus
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -27,6 +28,7 @@ class ModelsController(
     private val llmCatalogService: LlmCatalogService,
 ) {
 
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     fun create(@RequestBody request: LlmModelCreateRequest): LlmModelResponse {
@@ -43,6 +45,7 @@ class ModelsController(
         return model.toResponse()
     }
 
+    @PreAuthorize("hasRole('PLATFORM_USER')")
     @GetMapping
     fun list(
         @ParameterObject searchSpec: LlmModelSearchSpec,
@@ -50,11 +53,13 @@ class ModelsController(
     ): PageResponse<LlmModelResponse> =
         llmCatalogService.listModels(searchSpec, pageable).toResponse { it.toResponse() }
 
+    @PreAuthorize("hasRole('PLATFORM_USER')")
     @GetMapping("/{modelId}")
     fun get(@PathVariable modelId: Long): LlmModelResponse {
         return llmCatalogService.getModel(modelId).toResponse()
     }
 
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @PatchMapping("/{modelId}")
     fun update(
         @PathVariable modelId: Long,
@@ -73,6 +78,7 @@ class ModelsController(
         ).toResponse()
     }
 
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @DeleteMapping("/{modelId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun delete(@PathVariable modelId: Long) {

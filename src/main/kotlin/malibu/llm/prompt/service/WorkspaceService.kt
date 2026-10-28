@@ -2,13 +2,18 @@ package malibu.llm.prompt.service
 
 import malibu.llm.prompt.data.dto.WorkspaceSearchSpec
 import malibu.llm.prompt.data.entity.DefaultLlmCallOptions
+import malibu.llm.prompt.data.WorkspaceRole
 import malibu.llm.prompt.data.entity.Workspace
+import malibu.llm.prompt.data.entity.WorkspaceMember
+import malibu.llm.prompt.data.repo.AppUserRepository
 import malibu.llm.prompt.data.repo.DefaultLlmCallOptionsRepository
 import malibu.llm.prompt.data.repo.LlmApiKeyRepository
 import malibu.llm.prompt.data.repo.LlmCallLogRepository
 import malibu.llm.prompt.data.repo.LlmModelRepository
 import malibu.llm.prompt.data.repo.PromptRepository
+import malibu.llm.prompt.data.repo.WorkspaceMemberRepository
 import malibu.llm.prompt.data.repo.WorkspaceRepository
+import malibu.llm.prompt.error.UserNotFoundException
 import malibu.llm.prompt.error.ModelNotFoundException
 import malibu.llm.prompt.error.WorkspaceHasDependenciesException
 import malibu.llm.prompt.error.WorkspaceNotFoundException
@@ -29,11 +34,16 @@ class WorkspaceService(
     private val promptRepository: PromptRepository,
     private val llmApiKeyRepository: LlmApiKeyRepository,
     private val llmCallLogRepository: LlmCallLogRepository,
+    private val workspaceMemberRepository: WorkspaceMemberRepository,
+    private val appUserRepository: AppUserRepository,
 ) {
 
+    /**
+     * memberUserId 가 있으면 그 사용자가 멤버인 워크스페이스만 조회한다. (null 이면 전체)
+     */
     @Transactional(readOnly = true)
-    fun list(searchSpec: WorkspaceSearchSpec, pageable: Pageable): Page<Workspace> {
-        return workspaceRepository.searchWorkspaces(searchSpec, pageable)
+    fun list(searchSpec: WorkspaceSearchSpec, pageable: Pageable, memberUserId: UUID? = null): Page<Workspace> {
+        return workspaceRepository.searchWorkspaces(searchSpec, pageable, memberUserId)
     }
 
     @Transactional(readOnly = true)
@@ -42,21 +52,36 @@ class WorkspaceService(
             .orElseThrow { WorkspaceNotFoundException(workspaceId) }
     }
 
+    /**
+     * creatorUserId 가 있으면 생성자를 워크스페이스 ADMIN 멤버로 등록한다.
+     */
     @Transactional
-    fun create(name: String, description: String?, defaultModelId: Long?): Workspace {
+    fun create(name: String, description: String?, defaultModelId: Long?, creatorUserId: UUID? = null): Workspace {
         val defaultModel = if (defaultModelId != null) {
             llmModelRepository.findById(defaultModelId)
                 .orElseThrow { ModelNotFoundException(defaultModelId) }
         } else {
             null
         }
-        return workspaceRepository.save(
+        val workspace = workspaceRepository.save(
             Workspace(
                 name = name,
                 description = description,
                 defaultModel = defaultModel,
             )
         )
+        if (creatorUserId != null) {
+            val creator = appUserRepository.findById(creatorUserId)
+                .orElseThrow { UserNotFoundException(creatorUserId.toString()) }
+            workspaceMemberRepository.save(
+                WorkspaceMember(
+                    workspace = workspace,
+                    user = creator,
+                    role = WorkspaceRole.ADMIN,
+                )
+            )
+        }
+        return workspace
     }
 
     @Transactional
@@ -92,6 +117,8 @@ class WorkspaceService(
         if (promptCount > 0 || apiKeyCount > 0 || callLogCount > 0) {
             throw WorkspaceHasDependenciesException()
         }
+        // 멤버는 종속 데이터로 보지 않고 함께 지운다.
+        workspaceMemberRepository.deleteByWorkspaceId(workspaceId)
         workspaceRepository.delete(workspace)
     }
 

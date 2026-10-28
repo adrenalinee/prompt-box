@@ -1,6 +1,10 @@
 package malibu.llm.prompt.api
 
+import malibu.llm.prompt.config.LocalJwtProperties
 import malibu.llm.prompt.data.LlmModelType
+import malibu.llm.prompt.data.dto.DEV_DEFAULT_EMAIL
+import malibu.llm.prompt.data.dto.DEV_DEFAULT_SUBJECT
+import malibu.llm.prompt.service.AppUserService
 import malibu.llm.prompt.service.LlmCatalogService
 import malibu.llm.prompt.service.PromptService
 import malibu.llm.prompt.service.WorkspaceService
@@ -19,13 +23,24 @@ class DevInitController(
     private val workspaceService: WorkspaceService,
     private val llmCatalogService: LlmCatalogService,
     private val promptService: PromptService,
+    private val appUserService: AppUserService,
+    private val localJwtProperties: LocalJwtProperties,
 ) {
 
+    /**
+     * 기본 dev 토큰 사용자(/dev/token 기본값)를 만들고, 샘플 워크스페이스의 ADMIN 으로 등록한다.
+     */
     @Transactional
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/init")
     fun init() {
-        val workspace = workspaceService.create("test",null, null)
+        val devUser = appUserService.findOrRegister(
+            issuer = localJwtProperties.issuer,
+            subject = DEV_DEFAULT_SUBJECT,
+            email = DEV_DEFAULT_EMAIL,
+            name = null,
+        )
+        val workspace = workspaceService.create("test", null, null, creatorUserId = devUser.id)
         val vendor = llmCatalogService.createVendor("openai", null)
         llmCatalogService.createVendor("xai", null)
         llmCatalogService.createVendor("google", null)

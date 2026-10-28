@@ -41,9 +41,6 @@ class DevTokenController(
         if (req.name != null) {
             claimsBuilder.claim("name", req.name)
         }
-        if (req.roles.isNotEmpty()) {
-            claimsBuilder.claim("roles", req.roles)
-        }
 
         val header = JwsHeader.with(MacAlgorithm.HS256).build()
         val token = jwtEncoder.encode(JwtEncoderParameters.from(header, claimsBuilder.build()))

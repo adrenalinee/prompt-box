@@ -9,6 +9,8 @@ import malibu.llm.prompt.api.WorkspacesController
 import malibu.llm.prompt.ExecuteRequest
 import malibu.llm.prompt.ExecuteStreamingOrchestrator
 import malibu.llm.prompt.data.InputRole
+import malibu.llm.prompt.data.PlatformRole
+import malibu.llm.prompt.security.AppUserPrincipal
 import malibu.llm.streamclient.LlmStreamEvent
 import malibu.llm.prompt.service.LlmCallLogService
 import malibu.llm.prompt.service.LlmCatalogService
@@ -40,6 +42,7 @@ class WorkspacesControllerExecuteTest {
     fun `execute streams function call observed events with matching SSE event name`() {
         val workspaceId = UUID.randomUUID()
         val apiKeyId = UUID.randomUUID()
+        val user = AppUserPrincipal(userId = UUID.randomUUID(), email = null, platformRole = PlatformRole.USER)
         val capturedRequest = mutableListOf<ExecuteRequest>()
         val functionCallEvent = LlmStreamEvent.FunctionCallObserved(
             callId = "call_123",
@@ -51,7 +54,7 @@ class WorkspacesControllerExecuteTest {
         )
 
         every {
-            executeStreamingOrchestrator.executeStreaming(workspaceId, capture(capturedRequest))
+            executeStreamingOrchestrator.executeStreaming(workspaceId, capture(capturedRequest), user.userId)
         } returns Flux.just(functionCallEvent)
 
         val events = controller.execute(
@@ -61,7 +64,8 @@ class WorkspacesControllerExecuteTest {
                 llmApiKeyId = apiKeyId,
                 rawInstructionsText = "Use tools when useful.",
                 inputItems = listOf(InputItemRequest(InputRole.USER, "weather in seoul")),
-            )
+            ),
+            user,
         ).collectList().block().orEmpty()
 
         assertEquals(1, events.size)

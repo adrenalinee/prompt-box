@@ -45,9 +45,15 @@ A vendor-neutral streaming abstraction, published separately to GitHub Packages 
   4. decrypts the API key (`ApiKeyCipher`, AES key at `app.security.api-key-encryption.key`) and streams from the provider client.
 
   The orchestrator emits a `LogCreated` event first, persists output items, parts, and token usage to `LlmCallLog` through `LlmCallLogTxService`, and supports cancellation through `LlmCallCancelService`/the cancel registry.
-- **Layers:** `api/` holds the REST controllers, `service/` the transactional services, and `data/entity` + `data/repo` the JPA entities and Spring Data repositories (spring-data-rest is also on the classpath). Domain exceptions live in `error/Exceptions.kt` and map to HTTP responses in `ApiExceptionHandler`.
+- **Layers:** `api/` holds the REST controllers, `service/` the transactional services, and `data/entity` + `data/repo` the JPA entities and Spring Data repositories. Domain exceptions live in `error/Exceptions.kt` and map to HTTP responses in `ApiExceptionHandler`.
 - **Schema:** Liquibase SQL changesets live in `src/main/resources/db/changelog/changes/NNN_*.sql`, listed in `db.changelog-master.xml`. Add a new numbered changeset for schema changes. Changesets are PostgreSQL-only (012 uses a PL/pgSQL `DO` block), so they don't run on H2. H2 relies on `ddl-auto=update` from the entities, so keep entities and changesets in sync.
 - **Security:** an OAuth2 resource server validating Google-issued JWTs. Everything except Swagger (`/swagger-ui`, `/api-docs`) needs authentication. With the `local` profile, `LocalAuthConfig` swaps in an HS256 `JwtDecoder` (secret in `application-local.properties`), and `POST /dev/token` (`DevTokenController`, which needs no auth) issues test tokens. Combine it with the DB profile, e.g. `--spring.profiles.active=local` for H2.
+- **Authorization (roles):** roles live in the DB, not in the token.
+  - `AppUserJwtAuthenticationConverter` looks up the `app_user` by the JWT's `(iss, sub)`; first login auto-registers the user as PLATFORM `USER`. Emails listed in `app.security.bootstrap-admin-emails` become `ADMIN`. The result is an `AppUserAuthentication` whose principal is an `AppUserPrincipal`; controllers take it via `@AuthenticationPrincipal`.
+  - Platform roles are `ADMIN > USER` (via `RoleHierarchy`): `hasRole('PLATFORM_ADMIN')` guards vendor/model writes and `/users`.
+  - Workspace roles (`workspace_member`) are `ADMIN > USER > GUEST`. Controller methods check them with `@PreAuthorize("@wsAuthz.has(#workspaceId, 'USER')")` (`security/WorkspaceAuthz`; `hasForPrompt`/`hasForApiKey`/`hasForCallLog` resolve the workspace from a resource id). A platform ADMIN counts as ADMIN of every workspace.
+  - Authorization lives in controllers only; services stay auth-agnostic. Every new endpoint needs a `@PreAuthorize`.
+  - In `local`, the default `/dev/token` user (`local-user@localhost`) is a bootstrap admin, and `/dev/init` makes it ADMIN of the sample workspace.
 - **Jackson:** the app is mostly on Jackson 3 (`tools.jackson.*`). The `com.fasterxml` imports are still used where the OpenAI SDK and Swagger require them.
 - `EntityManagerExceptionTranslationConfig` (enabled in tests via `app.exception-translation.em.override`) wraps the EntityManager so that constraint violations surface as `DataIntegrityViolationException`.
 

@@ -23,7 +23,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 interface ExecuteStreamingOrchestrator {
-    fun executeStreaming(workspaceId: UUID, request: ExecuteRequest): Flux<LlmStreamEvent>
+    /**
+     * @param userId 실행한 사용자. call log 에 기록된다.
+     */
+    fun executeStreaming(workspaceId: UUID, request: ExecuteRequest, userId: UUID? = null): Flux<LlmStreamEvent>
 }
 
 @Component
@@ -41,7 +44,7 @@ class ExecuteStreamingOrchestratorImpl(
     private val objectMapper: ObjectMapper = ObjectMapper(),
 ) : ExecuteStreamingOrchestrator {
 
-    override fun executeStreaming(workspaceId: UUID, request: ExecuteRequest): Flux<LlmStreamEvent> {
+    override fun executeStreaming(workspaceId: UUID, request: ExecuteRequest, userId: UUID?): Flux<LlmStreamEvent> {
         val workspace = workspaceRepository.findById(workspaceId)
             .orElseThrow { WorkspaceNotFoundException(workspaceId) }
         val model = llmModelRepository.findById(request.llmModelId)
@@ -104,6 +107,7 @@ class ExecuteStreamingOrchestratorImpl(
                 instructions = resolvedInstructions ?: "",
                 llmCallOptions = llmCallOptionsJson,
                 messages = messages,
+                userId = userId,
             )
             val callLogId = requireNotNull(callLog.id)
             val createdEvent = LlmStreamEvent.LogCreated(

@@ -37,6 +37,7 @@ class LlmCallLogTxService(
         instructions: String,
         llmCallOptions: String?,
         messages: List<ExecuteStreamingOrchestratorImpl.RenderedInput>,
+        userId: UUID? = null,
     ): LlmCallLog {
         val callLog = llmCallLogRepository.save(
             LlmCallLog(
@@ -48,6 +49,7 @@ class LlmCallLogTxService(
                 status = LlmCallStatus.PENDING,
                 llmCallOptions = llmCallOptions,
                 workspace = workspace,
+                userId = userId,
             )
         )
 

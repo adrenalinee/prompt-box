@@ -20,6 +20,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.HttpStatus
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 import java.util.*
 
@@ -30,6 +31,10 @@ class LlmCallsController(
     private val llmCallCancelService: LlmCallCancelService,
 ) {
 
+    /**
+     * workspaceId 를 지정하지 않으면 플랫폼 ADMIN 만 조회할 수 있다.
+     */
+    @PreAuthorize("@wsAuthz.has(#searchSpec.workspaceId, 'GUEST')")
     @GetMapping
     fun listLogs(
         @ParameterObject searchSpec: LlmCallSearchSpec,
@@ -38,6 +43,7 @@ class LlmCallsController(
         llmCallLogService.listLogs(searchSpec, pageable)
             .toResponse { it.toResponse() }
 
+    @PreAuthorize("@wsAuthz.hasForCallLog(#callLogId, 'GUEST')")
     @GetMapping("/{callLogId}")
     fun getLog(@PathVariable callLogId: UUID): LlmCallLogDetailResponse {
         val detail = llmCallLogService.getLog(callLogId)
@@ -51,6 +57,10 @@ class LlmCallsController(
         )
     }
 
+    /**
+     * 실행한 본인이나 워크스페이스 ADMIN 만 취소할 수 있다.
+     */
+    @PreAuthorize("@wsAuthz.canCancelCallLog(#callLogId)")
     @PostMapping("/{callLogId}/cancel")
     @ResponseStatus(HttpStatus.ACCEPTED)
     fun cancel(

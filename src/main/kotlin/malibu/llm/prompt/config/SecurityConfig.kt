@@ -3,7 +3,11 @@ package malibu.llm.prompt.config
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import malibu.llm.prompt.security.AppUserJwtAuthenticationConverter
 import org.springframework.http.HttpMethod
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.web.SecurityFilterChain
@@ -13,9 +17,16 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 class SecurityConfig {
+    /**
+     * 인가는 컨트롤러의 @PreAuthorize 로 한다. 플랫폼 롤은 hasRole('PLATFORM_xxx'), 워크스페이스 롤은 @wsAuthz.
+     */
     @Bean
-    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
+    fun securityFilterChain(
+        http: HttpSecurity,
+        appUserJwtAuthenticationConverter: AppUserJwtAuthenticationConverter,
+    ): SecurityFilterChain {
         http
             .cors { }
             .csrf { it.disable() }
@@ -33,9 +44,16 @@ class SecurityConfig {
                 auth.requestMatchers("/error").permitAll()
                 auth.anyRequest().authenticated()
             }
-            .oauth2ResourceServer { it.jwt { } }
+            .oauth2ResourceServer { it.jwt { jwt -> jwt.jwtAuthenticationConverter(appUserJwtAuthenticationConverter) } }
         return http.build()
     }
+
+    /**
+     * 상위 롤은 하위 롤의 모든 권한을 가진다. 워크스페이스 롤 계층은 WorkspaceRole.includes 로 처리한다.
+     */
+    @Bean
+    fun roleHierarchy(): RoleHierarchy =
+        RoleHierarchyImpl.fromHierarchy("ROLE_PLATFORM_ADMIN > ROLE_PLATFORM_USER")
 
     @Bean
     fun corsConfigurationSource(

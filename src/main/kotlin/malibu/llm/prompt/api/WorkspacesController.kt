@@ -30,6 +30,7 @@ import malibu.llm.prompt.data.dto.WorkspaceSearchSpec
 import malibu.llm.prompt.data.dto.WorkspaceUpdateRequest
 import malibu.llm.prompt.data.entity.DefaultLlmCallOptions
 import malibu.llm.prompt.data.entity.Workspace
+import malibu.llm.prompt.security.AppUserPrincipal
 import malibu.llm.prompt.service.LlmCallLogService
 import malibu.llm.prompt.service.LlmCatalogService
 import malibu.llm.prompt.service.PromptService
@@ -43,6 +44,8 @@ import org.springframework.data.web.PageableDefault
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.codec.ServerSentEvent
+import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Flux
 import java.util.*
@@ -59,20 +62,41 @@ class WorkspacesController(
     private val logger = KotlinLogging.logger {}
 
 
+    /**
+     * 플랫폼 ADMIN 은 전체, 그 외에는 멤버로 등록된 워크스페이스만 조회된다.
+     */
     @GetMapping
     fun list(
         @ParameterObject searchSpec: WorkspaceSearchSpec,
         @PageableDefault(size = 20, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable,
+        @AuthenticationPrincipal user: AppUserPrincipal,
     ): PageResponse<WorkspaceResponse> =
-        workspaceService.list(searchSpec, pageable).toResponse { it.toResponse() }
+        workspaceService.list(
+            searchSpec,
+            pageable,
+            memberUserId = if (user.isPlatformAdmin) null else user.userId,
+        ).toResponse { it.toResponse() }
 
+    /**
+     * 생성자는 워크스페이스 ADMIN 이 된다.
+     */
+    @PreAuthorize("hasRole('PLATFORM_USER')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    fun create(@RequestBody request: WorkspaceCreateRequest): WorkspaceResponse {
-        val workspace = workspaceService.create(request.name, request.description, request.defaultModelId)
+    fun create(
+        @RequestBody request: WorkspaceCreateRequest,
+        @AuthenticationPrincipal user: AppUserPrincipal,
+    ): WorkspaceResponse {
+        val workspace = workspaceService.create(
+            request.name,
+            request.description,
+            request.defaultModelId,
+            creatorUserId = user.userId,
+        )
         return workspace.toResponse()
     }
 
+    @PreAuthorize("@wsAuthz.has(#workspaceId, 'GUEST')")
     @GetMapping("/{workspaceId}")
     fun get(
         @PathVariable workspaceId: UUID,
@@ -87,6 +111,7 @@ class WorkspacesController(
         return workspace.toDetailResponse(defaultOptions)
     }
 
+    @PreAuthorize("@wsAuthz.has(#workspaceId, 'ADMIN')")
     @PatchMapping("/{workspaceId}")
     fun update(
         @PathVariable workspaceId: UUID,
@@ -96,12 +121,14 @@ class WorkspacesController(
         return workspace.toResponse()
     }
 
+    @PreAuthorize("@wsAuthz.has(#workspaceId, 'ADMIN')")
     @DeleteMapping("/{workspaceId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun delete(@PathVariable workspaceId: UUID) {
         workspaceService.delete(workspaceId)
     }
 
+    @PreAuthorize("@wsAuthz.has(#workspaceId, 'GUEST')")
     @GetMapping("/{workspaceId}/prompts")
     fun listPrompts(
         @PathVariable workspaceId: UUID,
@@ -114,6 +141,7 @@ class WorkspacesController(
         ), pageable)
             .toResponse { it.toResponse() }
 
+    @PreAuthorize("@wsAuthz.has(#workspaceId, 'GUEST')")
     @GetMapping("/{workspaceId}/models")
     fun listModels(
         @PathVariable workspaceId: UUID,
@@ -122,6 +150,7 @@ class WorkspacesController(
     ): PageResponse<LlmModelResponse> =
         llmCatalogService.listModelsForWorkspace(workspaceId, searchSpec, pageable).toResponse { it.toResponse() }
 
+    @PreAuthorize("@wsAuthz.has(#workspaceId, 'GUEST')")
     @GetMapping("/{workspaceId}/llm-api-keys")
     fun listApiKeys(
         @PathVariable workspaceId: UUID,
@@ -136,6 +165,7 @@ class WorkspacesController(
         ), pageable)
             .toResponse { it.toResponse() }
 
+    @PreAuthorize("@wsAuthz.has(#workspaceId, 'GUEST')")
     @GetMapping("/{workspaceId}/llm-calls")
     fun listLogs(
         @PathVariable workspaceId: UUID,
@@ -152,6 +182,7 @@ class WorkspacesController(
         ), pageable)
             .toResponse { it.toResponse() }
 
+    @PreAuthorize("@wsAuthz.has(#workspaceId, 'USER')")
     @PostMapping("/{workspaceId}/llm-calls", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     @Operation(
         summary = "Execute LLM call (streaming)",
@@ -258,6 +289,7 @@ class WorkspacesController(
     fun execute(
         @PathVariable workspaceId: UUID,
         @RequestBody request: ExecuteApiRequest,
+        @AuthenticationPrincipal user: AppUserPrincipal,
     ): Flux<ServerSentEvent<LlmStreamEvent>> {
         logger.info { "start"}
         logger.info { "request: $request" }
@@ -272,7 +304,8 @@ class WorkspacesController(
                 rawInstructionsText = request.rawInstructionsText,
                 inputItems = request.inputItems.map { it.toExecuteInputItem() },
                 overrideOptions = request.overrideOptions?.toExecuteOverrideOptions(),
-            )
+            ),
+            userId = user.userId,
         ).map { event ->
             ServerSentEvent.builder(event)
                 .event(event.type)
@@ -280,12 +313,14 @@ class WorkspacesController(
         }
     }
 
+    @PreAuthorize("@wsAuthz.has(#workspaceId, 'GUEST')")
     @GetMapping("/{workspaceId}/default-options")
     fun getDefaultOptions(@PathVariable workspaceId: UUID): DefaultOptionsResponse {
         val options = workspaceService.getDefaultOptions(workspaceId)
         return options.toResponse()
     }
 
+    @PreAuthorize("@wsAuthz.has(#workspaceId, 'ADMIN')")
     @PutMapping("/{workspaceId}/default-options")
     fun upsertDefaultOptions(
         @PathVariable workspaceId: UUID,

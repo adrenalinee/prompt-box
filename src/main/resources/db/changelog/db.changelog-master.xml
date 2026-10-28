@@ -17,5 +17,6 @@
     <include file="db/changelog/changes/010_add_llm_api_key_last5.sql" relativeToChangelogFile="false" />
     <include file="db/changelog/changes/011_add_google_option_columns.sql" relativeToChangelogFile="false" />
     <include file="db/changelog/changes/012_update_llm_model_type_constraint.sql" relativeToChangelogFile="false" />
+    <include file="db/changelog/changes/013_add_user_and_workspace_member.sql" relativeToChangelogFile="false" />
 
 </databaseChangeLog>

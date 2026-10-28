@@ -9,6 +9,7 @@ import malibu.llm.prompt.data.repo.support.containsIgnoreCaseOrNull
 import malibu.llm.prompt.data.repo.support.fetchPage
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import java.util.UUID
 
 class PromptRepositoryImpl(
     private val queryFactory: JPAQueryFactory,
@@ -24,6 +25,11 @@ class PromptRepositoryImpl(
             .applySearchCondition(searchSpec)
         return content.fetchPage(pageable, prompt, count)
     }
+
+    override fun findWorkspaceIdById(promptId: UUID): UUID? =
+        queryFactory.select(prompt.workspace.id).from(prompt)
+            .where(prompt.id.eq(promptId))
+            .fetchOne()
 
     private fun <T> JPAQuery<T>.applySearchCondition(
         searchSpec: PromptSearchSpec,
