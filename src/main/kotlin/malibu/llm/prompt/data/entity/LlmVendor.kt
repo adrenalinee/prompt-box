@@ -4,6 +4,7 @@ import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import jakarta.persistence.Version
 import malibu.llm.prompt.data.BaseTimestamps
 import org.hibernate.annotations.UuidGenerator
 import java.util.UUID
@@ -21,4 +22,7 @@ class LlmVendor(
 
     @Column(name = "description", nullable = true, columnDefinition = "text")
     var description: String? = null,
-) : BaseTimestamps()
+) : BaseTimestamps() {
+    @Version
+    var version: Long = 0
+}

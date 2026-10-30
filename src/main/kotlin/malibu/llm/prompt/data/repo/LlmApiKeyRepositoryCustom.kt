@@ -10,10 +10,10 @@ interface LlmApiKeyRepositoryCustom {
     /**
      * API 키 검색. null 인 조건은 무시한다. (name 은 공백도 무시, 대소문자 무시 부분일치)
      */
-    fun searchApiKeys(
-        searchSpec: LlmApiKeySearchSpec,
-        pageable: Pageable,
-    ): Page<LlmApiKey>
+//    fun searchApiKeys(
+//        searchSpec: LlmApiKeySearchSpec,
+//        pageable: Pageable,
+//    ): Page<LlmApiKey>
 
     /**
      * API 키가 속한 workspaceId. 없으면 null. (권한 검사용)

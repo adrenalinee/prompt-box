@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
 import jakarta.persistence.Table
+import jakarta.persistence.Version
 import malibu.llm.prompt.data.BaseTimestamps
 import malibu.llm.prompt.data.OutputItemType
 
@@ -35,4 +36,7 @@ class OutputItem(
 
 //    @Column(name = "output_text", nullable = false, columnDefinition = "text")
 //    var outputText: String,
-) : BaseTimestamps()
+) : BaseTimestamps() {
+    @Version
+    var version: Long = 0
+}

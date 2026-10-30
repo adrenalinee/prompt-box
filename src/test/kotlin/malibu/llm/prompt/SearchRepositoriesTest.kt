@@ -19,6 +19,8 @@ import malibu.llm.prompt.data.repo.LlmVendorRepository
 import malibu.llm.prompt.data.repo.PromptRefRepository
 import malibu.llm.prompt.data.repo.PromptRepository
 import malibu.llm.prompt.data.repo.WorkspaceRepository
+import malibu.llm.prompt.service.predicate.LlmApiKeyPredicates
+import malibu.llm.prompt.service.predicate.LlmModelPredicates
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
@@ -94,28 +96,36 @@ class SearchRepositoriesTest(
 
         assertEquals(
             listOf(m1.id, f1.model.id),
-            llmModelRepository.searchModels(LlmModelSearchSpec(vendorId = f1.vendor.id), pageable).content.map { it.id },
+            llmModelRepository.findAll(LlmModelPredicates.searchModels(LlmModelSearchSpec(vendorId = f1.vendor.id)), pageable).content.map { it.id },
         )
         assertEquals(
             listOf(m1.id),
-            llmModelRepository.searchModels(LlmModelSearchSpec(vendorId = f1.vendor.id, name = "CHAT"), pageable).content.map { it.id },
+            llmModelRepository.findAll(LlmModelPredicates.searchModels(LlmModelSearchSpec(vendorId = f1.vendor.id, name = "CHAT")), pageable).content.map { it.id },
         )
-        assertEquals(0, llmModelRepository.searchModels(LlmModelSearchSpec(vendorId = f2.vendor.id, name = "chat"), pageable).totalElements)
+        assertEquals(0, llmModelRepository.findAll(LlmModelPredicates.searchModels(LlmModelSearchSpec(vendorId = f2.vendor.id, name = "chat")), pageable).totalElements)
+
 
         assertEquals(
             setOf(f1.apiKey.id, k1.id, k2.id),
-            llmApiKeyRepository.searchApiKeys(LlmApiKeySearchSpec(workspaceId = f1.workspace.id), pageable).content.map { it.id }.toSet(),
+
+            llmApiKeyRepository.findAll(
+                LlmApiKeyPredicates.searchApiKeys(LlmApiKeySearchSpec(workspaceId = f1.workspace.id)),
+                pageable
+            ).content.map { it.id }.toSet(),
         )
         assertEquals(
             listOf(k1.id),
-            llmApiKeyRepository.searchApiKeys(
-                LlmApiKeySearchSpec(workspaceId = f1.workspace.id, vendorId = f1.vendor.id, name = "prod"),
+            llmApiKeyRepository.findAll(
+                LlmApiKeyPredicates.searchApiKeys(LlmApiKeySearchSpec(workspaceId = f1.workspace.id, vendorId = f1.vendor.id, name = "prod")),
                 pageable,
             ).content.map { it.id },
         )
         assertEquals(
             listOf(f2.apiKey.id),
-            llmApiKeyRepository.searchApiKeys(LlmApiKeySearchSpec(workspaceId = f2.workspace.id), pageable).content.map { it.id },
+            llmApiKeyRepository.findAll(
+                LlmApiKeyPredicates.searchApiKeys(LlmApiKeySearchSpec(workspaceId = f2.workspace.id)),
+                pageable
+            ).content.map { it.id },
         )
     }
 

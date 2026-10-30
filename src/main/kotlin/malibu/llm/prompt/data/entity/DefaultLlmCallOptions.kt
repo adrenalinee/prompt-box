@@ -52,4 +52,7 @@ class DefaultLlmCallOptions(
     @Enumerated(EnumType.STRING)
     @Column(name = "summary", nullable = true, length = 45)
     var summary: SummaryType? = null,
-) : BaseTimestamps()
+) : BaseTimestamps() {
+    @Version
+    var version: Long = 0
+}

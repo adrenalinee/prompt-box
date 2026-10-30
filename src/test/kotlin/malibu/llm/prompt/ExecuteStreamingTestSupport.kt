@@ -6,6 +6,7 @@ import malibu.llm.prompt.data.entity.LlmCallLog
 import malibu.llm.prompt.data.entity.OutputItem
 import malibu.llm.prompt.data.repo.LlmCallLogRepository
 import malibu.llm.prompt.data.repo.OutputItemRepository
+import malibu.llm.prompt.service.predicate.LlmCallLogPredicates
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import java.util.UUID
@@ -19,9 +20,9 @@ open class ExecuteStreamingTestSupport(
         val deadline = System.currentTimeMillis() + 2000
         var latest: LlmCallLog? = null
         while (System.currentTimeMillis() < deadline) {
-            val logs = llmCallLogRepository.searchLogs(
-                LlmCallSearchSpec(workspaceId = workspaceId),
-                pageable = PageRequest.of(0, 1, Sort.by("createdAt").descending()),
+            val logs = llmCallLogRepository.findAll(
+                LlmCallLogPredicates.searchLogs(LlmCallSearchSpec(workspaceId = workspaceId)),
+                PageRequest.of(0, 1, Sort.by("createdAt").descending()),
             )
             latest = logs.content.firstOrNull()
             if (latest != null && latest.status == status) {

@@ -11,6 +11,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.Version
 import malibu.llm.prompt.data.BaseTimestamps
 import malibu.llm.prompt.data.OutputItemPartType
 
@@ -38,4 +39,7 @@ class OutputItemPart(
 
     @Column(name = "text", nullable = true, columnDefinition = "text")
     var text: String? = null,
-) : BaseTimestamps()
+) : BaseTimestamps() {
+    @Version
+    var version: Long = 0
+}

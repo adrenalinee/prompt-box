@@ -14,6 +14,7 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
+import jakarta.persistence.Version
 import malibu.llm.prompt.data.BaseTimestamps
 
 @Entity
@@ -53,4 +54,7 @@ class PromptRef(
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "source_tag_ref_id", nullable = true)
     var sourceTagRef: PromptRef? = null,
-) : BaseTimestamps()
+) : BaseTimestamps() {
+    @Version
+    var version: Long = 0
+}

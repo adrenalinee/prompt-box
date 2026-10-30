@@ -11,6 +11,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.Version
 import malibu.llm.prompt.data.BaseTimestamps
 import malibu.llm.prompt.data.InputRole
 
@@ -38,4 +39,7 @@ class InputItem(
      */
     @Column(name = "rendered_message", nullable = false, columnDefinition = "text")
     var renderedMessage: String,
-) : BaseTimestamps()
+) : BaseTimestamps() {
+    @Version
+    var version: Long = 0
+}

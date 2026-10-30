@@ -7,7 +7,7 @@ import malibu.llm.prompt.data.repo.PromptRepository
 import malibu.llm.prompt.data.repo.WorkspaceMemberRepository
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
-import java.util.UUID
+import java.util.*
 
 /**
  * 워크스페이스 롤 검사. @PreAuthorize 에서 @wsAuthz.xxx(...) 로 사용한다.
@@ -46,6 +46,9 @@ class WorkspaceAuthz(
     }
 
     fun hasForApiKey(apiKeyId: UUID, role: String): Boolean {
+        println("hasForApiKey")
+        println(llmApiKeyRepository.findWorkspaceIdById(apiKeyId))
+
         val workspaceId = llmApiKeyRepository.findWorkspaceIdById(apiKeyId) ?: return currentUser() != null
         return has(workspaceId, role)
     }

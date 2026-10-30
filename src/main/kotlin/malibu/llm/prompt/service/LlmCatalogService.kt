@@ -18,6 +18,8 @@ import malibu.llm.prompt.error.VendorHasDependenciesException
 import malibu.llm.prompt.error.VendorNotFoundException
 import malibu.llm.prompt.error.WorkspaceNotFoundException
 import malibu.llm.prompt.security.ApiKeyCipher
+import malibu.llm.prompt.service.predicate.LlmApiKeyPredicates
+import malibu.llm.prompt.service.predicate.LlmModelPredicates
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -30,7 +32,7 @@ class LlmCatalogService(
     private val llmModelRepository: LlmModelRepository,
     private val llmApiKeyRepository: LlmApiKeyRepository,
     private val workspaceRepository: WorkspaceRepository,
-    private val llmCallLogRepository: LlmCallLogRepository,
+//    private val llmCallLogRepository: LlmCallLogRepository,
     private val apiKeyCipher: ApiKeyCipher,
 ) {
 
@@ -121,7 +123,7 @@ class LlmCatalogService(
             llmVendorRepository.findById(vendorId)
                 .orElseThrow { VendorNotFoundException(vendorId) }
         }
-        return llmModelRepository.searchModels(searchSpec, pageable)
+        return llmModelRepository.findAll(LlmModelPredicates.searchModels(searchSpec), pageable)
     }
 
     @Transactional(readOnly = true)
@@ -231,7 +233,9 @@ class LlmCatalogService(
             llmVendorRepository.findById(vendorId)
                 .orElseThrow { VendorNotFoundException(vendorId) }
         }
-        return llmApiKeyRepository.searchApiKeys(searchSpec, pageable)
+        val predicate = LlmApiKeyPredicates.searchApiKeys(searchSpec)
+        return llmApiKeyRepository.findAll(predicate, pageable)
+//        return llmApiKeyRepository.searchApiKeys(searchSpec, pageable)
     }
 
     @Transactional(readOnly = true)

@@ -30,19 +30,28 @@ class SecurityConfig {
         http
             .cors { }
             .csrf { it.disable() }
+            .headers {  headers ->
+                headers.frameOptions { frame ->
+                    frame.sameOrigin() //for h2-console
+                }
+            }
             .authorizeHttpRequests { auth ->
                 auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 auth.requestMatchers(
                     "/",
+                    "/favicon.ico",
                     "/api-docs",
                     "/api-docs/**",
                     "/swagger-ui",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
+                    "/h2-console/**",
+                    "/.well-known/appspecific/com.chrome.devtools.json"
                 ).permitAll()
                 // 에러 응답(4xx/5xx)은 /error 로 forward 되는데, 여기서 막히면 원래 에러 대신 401 이 응답된다.
                 auth.requestMatchers("/error").permitAll()
                 auth.anyRequest().authenticated()
+//                auth.anyRequest().permitAll()
             }
             .oauth2ResourceServer { it.jwt { jwt -> jwt.jwtAuthenticationConverter(appUserJwtAuthenticationConverter) } }
         return http.build()

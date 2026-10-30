@@ -25,4 +25,7 @@ class AdditionalInputItem(
 
     @Column(name = "message", nullable = false, columnDefinition = "text")
     var message: String,
-) : BaseTimestamps()
+) : BaseTimestamps() {
+    @Version
+    var version: Long = 0
+}

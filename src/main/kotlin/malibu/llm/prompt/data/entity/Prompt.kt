@@ -8,6 +8,7 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
+import jakarta.persistence.Version
 import malibu.llm.prompt.data.BaseTimestamps
 import org.hibernate.annotations.UuidGenerator
 import java.util.UUID
@@ -48,4 +49,7 @@ class Prompt(
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "latest_tag_ref_id", nullable = true)
     var latestTag: PromptRef? = null,
-) : BaseTimestamps()
+) : BaseTimestamps() {
+    @Version
+    var version: Long = 0
+}

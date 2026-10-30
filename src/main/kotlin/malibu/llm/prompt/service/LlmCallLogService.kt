@@ -11,6 +11,7 @@ import malibu.llm.prompt.data.repo.LlmCallLogRepository
 import malibu.llm.prompt.data.repo.OutputItemPartRepository
 import malibu.llm.prompt.data.repo.OutputItemRepository
 import malibu.llm.prompt.error.CallLogNotFoundException
+import malibu.llm.prompt.service.predicate.LlmCallLogPredicates
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -30,7 +31,7 @@ class LlmCallLogService(
         searchSpec: LlmCallSearchSpec,
         pageable: Pageable,
     ): Page<LlmCallLog> {
-        return llmCallLogRepository.searchLogs(searchSpec, pageable)
+        return llmCallLogRepository.findAll(LlmCallLogPredicates.searchLogs(searchSpec), pageable)
     }
 
     @Transactional(readOnly = true)

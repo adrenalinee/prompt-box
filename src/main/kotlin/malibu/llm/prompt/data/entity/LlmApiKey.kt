@@ -7,6 +7,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.Version
 import malibu.llm.prompt.data.BaseTimestamps
 import org.hibernate.annotations.UuidGenerator
 import java.util.UUID
@@ -44,4 +45,7 @@ class LlmApiKey(
 
     @Column(name = "description", nullable = true, columnDefinition = "text")
     var description: String? = null,
-) : BaseTimestamps()
+) : BaseTimestamps() {
+    @Version
+    var version: Long = 0
+}

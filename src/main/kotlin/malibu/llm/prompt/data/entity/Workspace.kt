@@ -7,6 +7,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.Version
 import malibu.llm.prompt.data.BaseTimestamps
 import org.hibernate.annotations.UuidGenerator
 import java.util.*
@@ -28,4 +29,7 @@ class Workspace(
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "default_model_id", nullable = true)
     var defaultModel: LlmModel? = null,
-) : BaseTimestamps()
+) : BaseTimestamps() {
+    @Version
+    var version: Long = 0
+}

@@ -4,10 +4,12 @@ import malibu.llm.prompt.data.WorkspaceRole
 import malibu.llm.prompt.data.entity.WorkspaceMember
 import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.querydsl.QuerydslPredicateExecutor
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
-interface WorkspaceMemberRepository : JpaRepository<WorkspaceMember, UUID> {
+interface WorkspaceMemberRepository
+    : JpaRepository<WorkspaceMember, UUID>, QuerydslPredicateExecutor<WorkspaceMember> {
     @EntityGraph(attributePaths = ["user"])
     fun findByWorkspaceIdAndUserId(workspaceId: UUID, userId: UUID): WorkspaceMember?
 

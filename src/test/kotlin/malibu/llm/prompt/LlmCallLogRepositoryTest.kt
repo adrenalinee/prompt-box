@@ -14,6 +14,7 @@ import malibu.llm.prompt.data.repo.LlmVendorRepository
 import malibu.llm.prompt.data.repo.PromptRefRepository
 import malibu.llm.prompt.data.repo.PromptRepository
 import malibu.llm.prompt.data.repo.WorkspaceRepository
+import malibu.llm.prompt.service.predicate.LlmCallLogPredicates
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
@@ -66,7 +67,7 @@ class LlmCallLogRepositoryTest(
     private fun search(
         searchSpec: LlmCallSearchSpec,
         pageable: Pageable = PageRequest.of(0, 20, Sort.by("elapsed")),
-    ) = llmCallLogRepository.searchLogs(searchSpec, pageable)
+    ) = llmCallLogRepository.findAll(LlmCallLogPredicates.searchLogs(searchSpec), pageable)
 
     @Test
     fun `searchLogs filters by each condition and ignores null conditions`() {
