@@ -29,8 +29,8 @@ class AuthzCatalogSeeder(
 
         AuthzCatalog.permissions.forEach { permission ->
             jdbc.update(
-                "insert into permissions (code, scope) values (:code, :scope)",
-                mapOf("code" to permission.code, "scope" to permission.scope.name),
+                "insert into permissions (code, scope, description) values (:code, :scope, :description)",
+                mapOf("code" to permission.code, "scope" to permission.scope.name, "description" to permission.description),
             )
         }
 
@@ -39,10 +39,15 @@ class AuthzCatalogSeeder(
         orderedRoles.forEach { role ->
             jdbc.update(
                 """
-                insert into roles (code, scope, implied_workspace_role_id, implied_role_scope)
-                values (:code, :scope, (select id from roles where code = :implied), 'WORKSPACE')
+                insert into roles (code, scope, implied_workspace_role_id, implied_role_scope, description)
+                values (:code, :scope, (select id from roles where code = :implied), 'WORKSPACE', :description)
                 """.trimIndent(),
-                mapOf("code" to role.code, "scope" to role.scope.name, "implied" to role.impliedWorkspaceRole),
+                mapOf(
+                    "code" to role.code,
+                    "scope" to role.scope.name,
+                    "implied" to role.impliedWorkspaceRole,
+                    "description" to role.description,
+                ),
             )
         }
 

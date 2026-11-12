@@ -1,5 +1,6 @@
 package malibu.llm.prompt.data.dto
 
+import malibu.llm.prompt.authz.AuthzScope
 import malibu.llm.prompt.data.OrganizationStatus
 import malibu.llm.prompt.data.UserStatus
 import java.time.Instant
@@ -13,6 +14,9 @@ data class MeResponse(
     val email: String,
     val name: String,
     val status: UserStatus,
+    /** IdP 계정이 연결되었는지. local 프로파일 사용자는 false. */
+    val linked: Boolean,
+    val createdAt: Instant?,
     val platformRoles: List<String>,
     val platformPermissions: List<String>,
     val organizations: List<MyOrganizationResponse>,
@@ -116,4 +120,72 @@ data class MemberCreateRequest(
 
 data class MemberUpdateRequest(
     val role: String,
+)
+
+// ---- 권한 카탈로그 / 권한 요약 ----
+
+/** GET /authz/catalog: 시드된 권한과 역할. 수정 API 는 없다(마이그레이션으로만 바뀐다). */
+data class AuthzCatalogResponse(
+    /** scope(PLATFORM → ORGANIZATION → WORKSPACE), 시드 순서 */
+    val permissions: List<PermissionCatalogItem>,
+    /** scope(PLATFORM → ORGANIZATION → WORKSPACE), 시드 순서 */
+    val roles: List<RoleCatalogItem>,
+)
+
+data class PermissionCatalogItem(
+    val code: String,
+    val scope: AuthzScope,
+    val description: String,
+    /** 이 권한을 직접 가진 역할 */
+    val roles: List<String>,
+)
+
+data class RoleCatalogItem(
+    val code: String,
+    val scope: AuthzScope,
+    val description: String,
+    /** ORGANIZATION 역할만: org 의 모든 workspace 에서 이 workspace 역할로 판정한다. */
+    val impliedWorkspaceRole: String?,
+    val permissions: List<String>,
+)
+
+/**
+ * GET /me/access, GET /admin/users/{userId}/access: 한 사용자의 역할과 권한 요약.
+ *
+ * org / workspace 권한은 역할로 받는 권한이다. org 가 ACTIVE 가 아니면 실제 판정에서는 모두 거부되므로
+ * organizations[].status 로 효력 여부를 판단한다.
+ */
+data class AccessSummaryResponse(
+    val userId: UUID,
+    val platform: PlatformAccess,
+    /** 가입순 */
+    val organizations: List<OrganizationAccess>,
+    /** 직접 멤버인 workspace ∪ org 역할의 함의로 접근하는 workspace. 조직 가입순, 이름순 */
+    val workspaces: List<WorkspaceAccess>,
+)
+
+data class PlatformAccess(
+    val roles: List<String>,
+    val permissions: List<String>,
+)
+
+data class OrganizationAccess(
+    val id: UUID,
+    val name: String,
+    val status: OrganizationStatus,
+    val role: String,
+    val impliedWorkspaceRole: String?,
+    val permissions: List<String>,
+)
+
+data class WorkspaceAccess(
+    val id: UUID,
+    val name: String,
+    val organizationId: UUID,
+    /** workspace_member 로 직접 받은 역할 */
+    val directRole: String?,
+    /** org 역할의 함의로 받은 역할 */
+    val impliedRole: String?,
+    /** directRole ∪ impliedRole 의 권한 */
+    val permissions: List<String>,
 )

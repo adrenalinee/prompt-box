@@ -1,6 +1,8 @@
 package malibu.llm.prompt.api
 
+import malibu.llm.prompt.authz.AccessSummaryService
 import malibu.llm.prompt.authz.Permissions
+import malibu.llm.prompt.data.dto.AccessSummaryResponse
 import malibu.llm.prompt.data.PromptRefType
 import malibu.llm.prompt.data.dto.LlmApiKeyResponse
 import malibu.llm.prompt.data.dto.LlmApiKeySearchSpec
@@ -51,6 +53,7 @@ import java.util.UUID
 @RequestMapping("/admin/users")
 class AdminUsersController(
     private val userAccountService: UserAccountService,
+    private val accessSummaryService: AccessSummaryService,
 ) {
 
     /** query: email / name 부분일치 */
@@ -61,6 +64,21 @@ class AdminUsersController(
         @PageableDefault(size = 20, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable,
     ): PageResponse<UserResponse> =
         userAccountService.list(query, pageable).toResponse { it.toResponse() }
+
+    @GetMapping("/{userId}")
+    @PreAuthorize("@platformAuthz.has('${Permissions.PLATFORM_USER_MANAGE}')")
+    fun get(@PathVariable userId: UUID): UserResponse = userAccountService.get(userId).toResponse()
+
+    /**
+     * 그 사용자의 역할과 권한 요약. 사용자 관리 정보이므로 platform.content:read 가 아니라 platform.user:manage 로 본다.
+     * 보여 주기만 하며, 관리자가 그 org / workspace 에 접근할 권한이 생기지 않는다.
+     */
+    @GetMapping("/{userId}/access")
+    @PreAuthorize("@platformAuthz.has('${Permissions.PLATFORM_USER_MANAGE}')")
+    fun access(@PathVariable userId: UUID): AccessSummaryResponse {
+        userAccountService.get(userId) // 없는 사용자는 404
+        return accessSummaryService.summarize(userId)
+    }
 
     /** 사전 등록. 개인 org(ORG_OWNER) + 기본 workspace 가 함께 만들어진다. 첫 로그인 때 Google 계정이 연결된다. */
     @PostMapping

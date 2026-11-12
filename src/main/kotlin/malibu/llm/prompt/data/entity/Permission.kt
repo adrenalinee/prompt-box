@@ -34,4 +34,8 @@ class Permission(
     @Enumerated(EnumType.STRING)
     @Column(name = "scope", nullable = false, length = 20)
     var scope: AuthzScope,
+
+    /** 화면 표시용 설명. 시드로만 바뀐다. */
+    @Column(name = "description", nullable = false, length = 200)
+    var description: String,
 )

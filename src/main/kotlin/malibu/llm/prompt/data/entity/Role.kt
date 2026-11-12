@@ -46,4 +46,8 @@ class Role(
     @Enumerated(EnumType.STRING)
     @Column(name = "implied_role_scope", nullable = false, length = 20)
     var impliedRoleScope: AuthzScope = AuthzScope.WORKSPACE,
+
+    /** 화면 표시용 설명. 시드로만 바뀐다. */
+    @Column(name = "description", nullable = false, length = 200)
+    var description: String,
 )

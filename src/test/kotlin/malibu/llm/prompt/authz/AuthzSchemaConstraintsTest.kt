@@ -194,7 +194,7 @@ class AuthzSchemaConstraintsTest {
     fun `ORGANIZATION 역할이 WORKSPACE 가 아닌 역할을 함의하면 실패`() = rollbackAfter {
         assertThrows(DataIntegrityViolationException::class.java) {
             jdbc.update(
-                "insert into roles (code, scope, implied_workspace_role_id) values ('TEST_ORG_ROLE', 'ORGANIZATION', ?)",
+                "insert into roles (code, scope, implied_workspace_role_id, description) values ('TEST_ORG_ROLE', 'ORGANIZATION', ?, 'test')",
                 roleId(Roles.ORG_MEMBER),
             )
         }
@@ -204,7 +204,7 @@ class AuthzSchemaConstraintsTest {
     fun `WORKSPACE 역할에 함의를 넣으면 실패`() = rollbackAfter {
         assertThrows(DataIntegrityViolationException::class.java) {
             jdbc.update(
-                "insert into roles (code, scope, implied_workspace_role_id) values ('TEST_WS_ROLE', 'WORKSPACE', ?)",
+                "insert into roles (code, scope, implied_workspace_role_id, description) values ('TEST_WS_ROLE', 'WORKSPACE', ?, 'test')",
                 roleId(Roles.WORKSPACE_MEMBER),
             )
         }

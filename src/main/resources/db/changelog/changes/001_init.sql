@@ -229,6 +229,7 @@ create table if not exists roles (
     scope varchar(20) not null,
     implied_workspace_role_id bigint,
     implied_role_scope varchar(20) not null default 'WORKSPACE',
+    description varchar(200) not null,
     primary key (id),
     constraint ux_roles_code unique (code),
     constraint ux_roles_id_scope unique (id, scope),
@@ -245,6 +246,7 @@ create table if not exists permissions (
     id bigserial not null,
     code varchar(100) not null,
     scope varchar(20) not null,
+    description varchar(200) not null,
     primary key (id),
     constraint ux_permissions_code unique (code),
     constraint ux_permissions_id_scope unique (id, scope),
@@ -309,49 +311,50 @@ create table if not exists workspace_member (
 create index if not exists ix_workspace_member_user on workspace_member (user_id);
 
 -- changeset malibu:001-authz-seed
--- 권한 문자열은 코드(malibu.llm.prompt.authz.AuthzCatalog)와 일치해야 한다. AuthzSchemaConstraintsTest 가 검사한다.
-insert into roles (code, scope) values
-    ('PLATFORM_ADMIN', 'PLATFORM'),
-    ('WORKSPACE_ADMIN', 'WORKSPACE'),
-    ('WORKSPACE_MEMBER', 'WORKSPACE');
+-- 권한 문자열과 설명은 코드(malibu.llm.prompt.authz.AuthzCatalog)와 일치해야 한다. AuthzSchemaConstraintsTest 가 검사한다.
+-- 설명은 화면 표시용이며 수정 API 가 없다. 바꾸려면 새 changeset 을 추가한다.
+insert into roles (code, scope, description) values
+    ('PLATFORM_ADMIN', 'PLATFORM', '플랫폼 관리자. 사용자, 조직, LLM 카탈로그를 관리하고 전체 콘텐츠를 읽기 전용으로 본다'),
+    ('WORKSPACE_ADMIN', 'WORKSPACE', 'workspace 관리자. workspace 의 모든 권한'),
+    ('WORKSPACE_MEMBER', 'WORKSPACE', 'workspace 멤버. 프롬프트 작성과 LLM 실행');
 
-insert into roles (code, scope, implied_workspace_role_id) values
-    ('ORG_OWNER', 'ORGANIZATION', (select id from roles where code = 'WORKSPACE_ADMIN')),
-    ('ORG_ADMIN', 'ORGANIZATION', (select id from roles where code = 'WORKSPACE_ADMIN')),
-    ('ORG_MEMBER', 'ORGANIZATION', null);
+insert into roles (code, scope, implied_workspace_role_id, description) values
+    ('ORG_OWNER', 'ORGANIZATION', (select id from roles where code = 'WORKSPACE_ADMIN'), '조직 소유자(1명). 조직의 모든 권한, 조직의 모든 workspace 에서 WORKSPACE_ADMIN'),
+    ('ORG_ADMIN', 'ORGANIZATION', (select id from roles where code = 'WORKSPACE_ADMIN'), '조직 관리자. 소유권 이전, 삭제를 뺀 조직 권한, 조직의 모든 workspace 에서 WORKSPACE_ADMIN'),
+    ('ORG_MEMBER', 'ORGANIZATION', null, '조직 멤버. 조직 조회만 가능, workspace 권한은 workspace 멤버십으로 받는다');
 
-insert into permissions (code, scope) values
+insert into permissions (code, scope, description) values
     -- PLATFORM
-    ('llm_vendor:manage', 'PLATFORM'),
-    ('llm_model:manage', 'PLATFORM'),
-    ('platform.user:manage', 'PLATFORM'),
-    ('platform.content:read', 'PLATFORM'),
-    ('organization:create', 'PLATFORM'),
-    ('organization:list_all', 'PLATFORM'),
-    ('organization:suspend', 'PLATFORM'),
+    ('llm_vendor:manage', 'PLATFORM', 'LLM 벤더 등록, 수정, 삭제'),
+    ('llm_model:manage', 'PLATFORM', 'LLM 모델 등록, 수정, 삭제'),
+    ('platform.user:manage', 'PLATFORM', '사용자 사전 등록, 조회, 상태와 플랫폼 역할 변경'),
+    ('platform.content:read', 'PLATFORM', '모든 workspace 의 콘텐츠를 읽기 전용으로 조회 (/admin)'),
+    ('organization:create', 'PLATFORM', '조직 생성 (소유자 지정 가능)'),
+    ('organization:list_all', 'PLATFORM', '모든 조직 목록 조회'),
+    ('organization:suspend', 'PLATFORM', '조직 정지와 해제'),
     -- ORGANIZATION
-    ('organization:read', 'ORGANIZATION'),
-    ('organization:update', 'ORGANIZATION'),
-    ('organization:delete', 'ORGANIZATION'),
-    ('organization.billing:manage', 'ORGANIZATION'),
-    ('organization.ownership:transfer', 'ORGANIZATION'),
-    ('organization.member:manage', 'ORGANIZATION'),
-    ('organization.usage:read', 'ORGANIZATION'),
-    ('workspace:create', 'ORGANIZATION'),
-    ('workspace:delete', 'ORGANIZATION'),
-    ('workspace:list_all', 'ORGANIZATION'),
+    ('organization:read', 'ORGANIZATION', '조직 정보, 멤버, 소속 workspace 조회'),
+    ('organization:update', 'ORGANIZATION', '조직 이름 변경'),
+    ('organization:delete', 'ORGANIZATION', '조직 삭제 (workspace 가 없을 때)'),
+    ('organization.billing:manage', 'ORGANIZATION', '결제 관리 (기능 예정)'),
+    ('organization.ownership:transfer', 'ORGANIZATION', '조직 소유권 이전'),
+    ('organization.member:manage', 'ORGANIZATION', '조직 멤버 추가, 역할 변경, 내보내기 (Owner 는 제외)'),
+    ('organization.usage:read', 'ORGANIZATION', '조직 사용량 조회 (기능 예정)'),
+    ('workspace:create', 'ORGANIZATION', '조직에 workspace 생성'),
+    ('workspace:delete', 'ORGANIZATION', '조직의 workspace 삭제'),
+    ('workspace:list_all', 'ORGANIZATION', '조직의 모든 workspace 조회 (소속되지 않은 것 포함)'),
     -- WORKSPACE
-    ('workspace:read', 'WORKSPACE'),
-    ('workspace:update', 'WORKSPACE'),
-    ('workspace.member:manage', 'WORKSPACE'),
-    ('prompt:read', 'WORKSPACE'),
-    ('prompt:write', 'WORKSPACE'),
-    ('prompt:delete', 'WORKSPACE'),
-    ('prompt_ref:publish', 'WORKSPACE'),
-    ('api_key:manage', 'WORKSPACE'),
-    ('call_option:manage', 'WORKSPACE'),
-    ('llm:execute', 'WORKSPACE'),
-    ('call_log:read', 'WORKSPACE');
+    ('workspace:read', 'WORKSPACE', 'workspace 정보, 멤버, 기본 옵션, 모델 조회'),
+    ('workspace:update', 'WORKSPACE', 'workspace 이름, 설명, 기본 모델 변경'),
+    ('workspace.member:manage', 'WORKSPACE', 'workspace 멤버 추가, 역할 변경, 내보내기'),
+    ('prompt:read', 'WORKSPACE', '프롬프트와 버전 조회'),
+    ('prompt:write', 'WORKSPACE', '프롬프트 작성, 수정, 브랜치 관리'),
+    ('prompt:delete', 'WORKSPACE', '프롬프트 삭제'),
+    ('prompt_ref:publish', 'WORKSPACE', '프롬프트 태그 발행과 최신 태그 지정'),
+    ('api_key:manage', 'WORKSPACE', 'LLM API 키 등록, 수정, 삭제'),
+    ('call_option:manage', 'WORKSPACE', 'workspace 기본 호출 옵션 변경'),
+    ('llm:execute', 'WORKSPACE', 'LLM 실행과 취소, API 키 목록 조회'),
+    ('call_log:read', 'WORKSPACE', 'LLM 호출 기록 조회');
 
 insert into role_permissions (role_id, permission_id, scope)
 select r.id, p.id, p.scope

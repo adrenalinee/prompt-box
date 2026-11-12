@@ -62,6 +62,7 @@ create table roles (
   implied_workspace_role_id bigint,
   implied_role_scope varchar(20) not null default 'WORKSPACE'
                      check (implied_role_scope = 'WORKSPACE'),
+  description varchar(200) not null,                   -- 화면 표시용 설명
   unique (id, scope),
   foreign key (implied_workspace_role_id, implied_role_scope) references roles(id, scope),
   check (implied_workspace_role_id is null or scope = 'ORGANIZATION')
@@ -71,6 +72,7 @@ create table permissions (
   id     bigserial primary key,
   code   varchar(100) not null unique,
   scope  varchar(20)  not null check (scope in ('PLATFORM','ORGANIZATION','WORKSPACE')),
+  description varchar(200) not null,                   -- 화면 표시용 설명
   unique (id, scope)
 );
 
@@ -142,6 +144,8 @@ create index ix_workspace_member_user on workspace_member (user_id);
 ## 3. 시드 (역할 / 권한 / 매핑)
 
 권한(permission)은 코드가 검사하는 문자열이므로 **운영 화면이 아니라 마이그레이션으로만** 추가/변경한다. 코드의 권한 상수(`malibu.llm.prompt.authz`)와 시드가 일치하는지 테스트로 검사한다.
+
+역할과 권한의 `description`(화면 표시용 한글 설명)도 시드 값이며 수정 API 가 없다. 원본은 `AuthzCatalog` 이고, 시드와 설명까지 일치하는지 같은 테스트가 검사한다. `GET /authz/catalog` 가 DB 의 값을 내려준다.
 
 역할:
 
@@ -291,10 +295,20 @@ select distinct p.code
 |---|---|---|
 | `POST /dev/token` | permitAll (local) | 사용자 find-or-create 후 토큰 발급 (§10) |
 | `POST /dev/init` | 인증 (local) | 카탈로그 생성 + 호출자 기본 workspace 에 샘플 프롬프트 |
-| `GET /me` | 인증 | 사용자 정보, 플랫폼 권한, 소속 org |
+| `GET /me` | 인증 | 사용자 정보(`linked`, `createdAt` 포함), 플랫폼 권한, 소속 org |
+| `GET /me/access` | 인증 | 내 역할과 권한 요약(아래). 본인 것만 |
+| `GET /authz/catalog` | 인증 | 권한(설명, 부여 역할)과 역할(설명, 함의, 권한). 읽기 전용 |
 | `GET /admin/users` | plat `platform.user:manage` | |
+| `GET /admin/users/{userId}` | plat `platform.user:manage` | |
+| `GET /admin/users/{userId}/access` | plat `platform.user:manage` | 그 사용자의 역할과 권한 요약. 보여 주기만 하며 관리자에게 접근 권한이 생기지 않는다 |
 | `POST /admin/users` | plat `platform.user:manage` | 사전 등록. 개인 org + 기본 workspace 생성 |
 | `PATCH /admin/users/{userId}` | plat `platform.user:manage` | name, status, `platformRoles`(목록으로 교체). 자기 자신의 비활성화 / PLATFORM_ADMIN 회수는 400 |
+
+권한 요약(`/me/access`, `/admin/users/{userId}/access`):
+- `platform`: 플랫폼 역할과 권한.
+- `organizations`: 소속 org 와 역할, 역할의 함의 workspace 역할, 역할로 받는 org 권한. org 상태로 거르지 않는다. SUSPENDED org 의 권한은 실제 판정에서 거부되므로 `status` 로 효력을 판단한다.
+- `workspaces`: 직접 멤버인 workspace ∪ org 역할의 함의로 접근하는 workspace(§4.3 과 같은 범위). `directRole`, `impliedRole`, 둘을 합친 권한.
+- 화면 표시용 조회(`AccessQueryRepository`)이며 판정에는 쓰지 않는다. ACTIVE org 에서는 `my-permissions` 결과와 같다(테스트로 검사).
 
 **Organization**
 

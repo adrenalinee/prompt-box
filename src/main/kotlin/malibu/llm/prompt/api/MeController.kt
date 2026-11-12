@@ -1,6 +1,8 @@
 package malibu.llm.prompt.api
 
+import malibu.llm.prompt.authz.AccessSummaryService
 import malibu.llm.prompt.authz.PlatformAuthz
+import malibu.llm.prompt.data.dto.AccessSummaryResponse
 import malibu.llm.prompt.data.dto.MeResponse
 import malibu.llm.prompt.data.dto.MyOrganizationResponse
 import malibu.llm.prompt.security.CurrentUser
@@ -18,6 +20,7 @@ class MeController(
     private val userAccountService: UserAccountService,
     private val organizationService: OrganizationService,
     private val platformAuthz: PlatformAuthz,
+    private val accessSummaryService: AccessSummaryService,
 ) {
 
     @GetMapping("/me")
@@ -30,6 +33,8 @@ class MeController(
             email = user.email,
             name = user.name,
             status = user.status,
+            linked = user.authProvider != null,
+            createdAt = user.createdAt,
             platformRoles = userAccountService.platformRoles(userId),
             platformPermissions = platformAuthz.permissions().sorted(),
             organizations = organizationService.listMemberships(userId).map {
@@ -42,4 +47,9 @@ class MeController(
             },
         )
     }
+
+    /** 내 역할과 권한 요약(플랫폼 / org / workspace). 본인 것만 돌려준다. */
+    @GetMapping("/me/access")
+    @PreAuthorize("isAuthenticated()")
+    fun access(): AccessSummaryResponse = accessSummaryService.summarize(CurrentUser.userId())
 }

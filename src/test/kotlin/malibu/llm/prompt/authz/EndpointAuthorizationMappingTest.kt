@@ -30,7 +30,11 @@ class EndpointAuthorizationMappingTest {
 
         // 사용자 / 내 정보
         "GET /me" to "인증",
+        "GET /me/access" to "인증",
+        "GET /authz/catalog" to "인증",
         "GET /admin/users" to "plat platform.user:manage",
+        "GET /admin/users/{userId}" to "plat platform.user:manage",
+        "GET /admin/users/{userId}/access" to "plat platform.user:manage",
         "POST /admin/users" to "plat platform.user:manage",
         "PATCH /admin/users/{userId}" to "plat platform.user:manage",
 

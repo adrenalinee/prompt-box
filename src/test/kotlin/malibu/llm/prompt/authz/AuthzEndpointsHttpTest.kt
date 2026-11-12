@@ -166,6 +166,123 @@ class AuthzEndpointsHttpTest(
         assertStatus(404, get(outsider, "/organizations/$ownerOrgId/my-permissions"))
     }
 
+    // ---- 권한 카탈로그 / 권한 요약 ----
+
+    @Test
+    fun `catalog - 로그인한 사용자 모두, 시드와 같은 정의와 설명`() {
+        assertStatus(401, get(null, "/authz/catalog"))
+        val catalog = get(outsider, "/authz/catalog")
+        assertStatus(200, catalog)
+        val body = catalog.body!!
+
+        val permissions = body.get("permissions").associateBy { it.get("code").asText() }
+        assertEquals(AuthzCatalog.permissions.map { it.code }.toSet(), permissions.keys)
+        AuthzCatalog.permissions.forEach {
+            assertEquals(it.description, permissions.getValue(it.code).get("description").asText())
+        }
+        assertEquals(listOf(Roles.WORKSPACE_ADMIN), permissions.getValue(Permissions.PROMPT_DELETE).get("roles").map { it.asText() })
+        // scope 순서: PLATFORM → ORGANIZATION → WORKSPACE
+        assertEquals(
+            listOf("PLATFORM", "ORGANIZATION", "WORKSPACE"),
+            body.get("permissions").map { it.get("scope").asText() }.distinct(),
+        )
+
+        assertEquals(
+            listOf(Roles.PLATFORM_ADMIN, Roles.ORG_OWNER, Roles.ORG_ADMIN, Roles.ORG_MEMBER, Roles.WORKSPACE_ADMIN, Roles.WORKSPACE_MEMBER),
+            body.get("roles").map { it.get("code").asText() },
+        )
+        val roles = body.get("roles").associateBy { it.get("code").asText() }
+        AuthzCatalog.roles.forEach { role ->
+            val node = roles.getValue(role.code)
+            assertEquals(role.description, node.get("description").asText())
+            assertEquals(role.permissions, node.texts("permissions"))
+            assertEquals(role.impliedWorkspaceRole, node.get("impliedWorkspaceRole").takeUnless { it.isNull }?.asText())
+        }
+    }
+
+    @Test
+    fun `me access - 직접 역할과 함의 역할, 실제 판정과 같은 권한`() {
+        val (ownerToken, ownerU) = newUser("access-owner")
+        val (adminToken, adminU) = newUser("access-admin")
+        val (memberToken, memberU) = newUser("access-member")
+        val orgId = fixture.personalOrganizationId(ownerU)
+        val wsId = fixture.defaultWorkspaceId(ownerU)
+        fixture.addOrgMember(orgId, adminU, Roles.ORG_ADMIN)
+        fixture.addOrgMember(orgId, memberU, Roles.ORG_MEMBER)
+        fixture.addWorkspaceMember(wsId, orgId, memberU, Roles.WORKSPACE_MEMBER)
+
+        fun workspace(access: JsonNode, id: UUID) = access.get("workspaces").single { it.get("id").asText() == id.toString() }
+        fun role(node: JsonNode, field: String) = node.get(field).takeUnless { it.isNull }?.asText()
+
+        // OWNER: 직접(생성자) + 함의
+        val ownerWs = workspace(get(ownerToken, "/me/access").body!!, wsId)
+        assertEquals(Roles.WORKSPACE_ADMIN, role(ownerWs, "directRole"))
+        assertEquals(Roles.WORKSPACE_ADMIN, role(ownerWs, "impliedRole"))
+
+        // ORG_ADMIN: workspace_member 없이 함의로만
+        val adminAccess = get(adminToken, "/me/access").body!!
+        val adminWs = workspace(adminAccess, wsId)
+        assertEquals(null, role(adminWs, "directRole"))
+        assertEquals(Roles.WORKSPACE_ADMIN, role(adminWs, "impliedRole"))
+        val adminOrg = adminAccess.get("organizations").single { it.get("id").asText() == orgId.toString() }
+        assertEquals(Roles.ORG_ADMIN, adminOrg.get("role").asText())
+        assertEquals(Roles.WORKSPACE_ADMIN, role(adminOrg, "impliedWorkspaceRole"))
+        assertTrue(adminAccess.get("platform").texts("roles").isEmpty())
+
+        // ORG_MEMBER + WORKSPACE_MEMBER: 직접만
+        val memberAccess = get(memberToken, "/me/access").body!!
+        val memberWs = workspace(memberAccess, wsId)
+        assertEquals(Roles.WORKSPACE_MEMBER, role(memberWs, "directRole"))
+        assertEquals(null, role(memberWs, "impliedRole"))
+
+        // 모든 workspace / org 권한이 실제 판정(my-permissions)과 같다
+        for ((token, access) in listOf(adminToken to adminAccess, memberToken to memberAccess)) {
+            access.get("workspaces").forEach {
+                val actual = get(token, "/workspaces/${it.get("id").asText()}/my-permissions").body!!
+                assertEquals(actual.texts("permissions"), it.texts("permissions"))
+            }
+            access.get("organizations").forEach {
+                val actual = get(token, "/organizations/${it.get("id").asText()}/my-permissions").body!!
+                assertEquals(actual.texts("permissions"), it.texts("permissions"))
+            }
+        }
+
+        // 정지된 org 도 상태와 함께 역할 권한을 보여 준다(실제 판정은 404)
+        val teamId = post(admin, "/admin/organizations", mapOf("name" to "access-team", "ownerUserId" to memberU.id))
+            .body!!.get("id").asText()
+        assertStatus(200, patch(admin, "/admin/organizations/$teamId/status", mapOf("status" to "SUSPENDED")))
+        val team = get(memberToken, "/me/access").body!!.get("organizations").single { it.get("id").asText() == teamId }
+        assertEquals("SUSPENDED", team.get("status").asText())
+        assertTrue(Permissions.ORGANIZATION_DELETE in team.texts("permissions"))
+        assertStatus(404, get(memberToken, "/organizations/$teamId/my-permissions"))
+
+        assertStatus(401, get(null, "/me/access"))
+    }
+
+    @Test
+    fun `admin 사용자 상세와 권한 - platform user manage 만`() {
+        val (token, u) = newUser("detail")
+        assertStatus(403, get(token, "/admin/users/${u.id}"), "FORBIDDEN")
+        assertStatus(403, get(token, "/admin/users/${u.id}/access"), "FORBIDDEN")
+
+        val detail = get(admin, "/admin/users/${u.id}")
+        assertStatus(200, detail)
+        assertEquals(u.email, detail.body!!.get("email").asText())
+
+        val access = get(admin, "/admin/users/${u.id}/access")
+        assertStatus(200, access)
+        assertEquals(get(token, "/me/access").body, access.body)
+
+        val unknown = UUID.randomUUID()
+        assertStatus(404, get(admin, "/admin/users/$unknown"))
+        assertStatus(404, get(admin, "/admin/users/$unknown/access"))
+
+        // /me 의 가입일과 IdP 연결 여부 (local 사용자는 연결 안 됨)
+        val me = get(token, "/me").body!!
+        assertFalse(me.get("linked").asBoolean())
+        assertFalse(me.get("createdAt").isNull)
+    }
+
     // ---- workspace ----
 
     @Test

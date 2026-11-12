@@ -63,11 +63,15 @@ object Roles {
 data class PermissionDefinition(
     val code: String,
     val scope: AuthzScope,
+    /** 화면 표시용 설명. 시드로만 바뀐다(수정 API 없음). */
+    val description: String,
 )
 
 data class RoleDefinition(
     val code: String,
     val scope: AuthzScope,
+    /** 화면 표시용 설명. 시드로만 바뀐다(수정 API 없음). */
+    val description: String,
     /** ORGANIZATION 역할만 가진다. org 안의 모든 workspace 에서 이 workspace 역할을 가진 것으로 판정한다. */
     val impliedWorkspaceRole: String?,
     val permissions: Set<String>,
@@ -79,36 +83,36 @@ data class RoleDefinition(
  */
 object AuthzCatalog {
     val permissions: List<PermissionDefinition> = listOf(
-        PermissionDefinition(Permissions.LLM_VENDOR_MANAGE, AuthzScope.PLATFORM),
-        PermissionDefinition(Permissions.LLM_MODEL_MANAGE, AuthzScope.PLATFORM),
-        PermissionDefinition(Permissions.PLATFORM_USER_MANAGE, AuthzScope.PLATFORM),
-        PermissionDefinition(Permissions.PLATFORM_CONTENT_READ, AuthzScope.PLATFORM),
-        PermissionDefinition(Permissions.ORGANIZATION_CREATE, AuthzScope.PLATFORM),
-        PermissionDefinition(Permissions.ORGANIZATION_LIST_ALL, AuthzScope.PLATFORM),
-        PermissionDefinition(Permissions.ORGANIZATION_SUSPEND, AuthzScope.PLATFORM),
+        PermissionDefinition(Permissions.LLM_VENDOR_MANAGE, AuthzScope.PLATFORM, "LLM 벤더 등록, 수정, 삭제"),
+        PermissionDefinition(Permissions.LLM_MODEL_MANAGE, AuthzScope.PLATFORM, "LLM 모델 등록, 수정, 삭제"),
+        PermissionDefinition(Permissions.PLATFORM_USER_MANAGE, AuthzScope.PLATFORM, "사용자 사전 등록, 조회, 상태와 플랫폼 역할 변경"),
+        PermissionDefinition(Permissions.PLATFORM_CONTENT_READ, AuthzScope.PLATFORM, "모든 workspace 의 콘텐츠를 읽기 전용으로 조회 (/admin)"),
+        PermissionDefinition(Permissions.ORGANIZATION_CREATE, AuthzScope.PLATFORM, "조직 생성 (소유자 지정 가능)"),
+        PermissionDefinition(Permissions.ORGANIZATION_LIST_ALL, AuthzScope.PLATFORM, "모든 조직 목록 조회"),
+        PermissionDefinition(Permissions.ORGANIZATION_SUSPEND, AuthzScope.PLATFORM, "조직 정지와 해제"),
 
-        PermissionDefinition(Permissions.ORGANIZATION_READ, AuthzScope.ORGANIZATION),
-        PermissionDefinition(Permissions.ORGANIZATION_UPDATE, AuthzScope.ORGANIZATION),
-        PermissionDefinition(Permissions.ORGANIZATION_DELETE, AuthzScope.ORGANIZATION),
-        PermissionDefinition(Permissions.ORGANIZATION_BILLING_MANAGE, AuthzScope.ORGANIZATION),
-        PermissionDefinition(Permissions.ORGANIZATION_OWNERSHIP_TRANSFER, AuthzScope.ORGANIZATION),
-        PermissionDefinition(Permissions.ORGANIZATION_MEMBER_MANAGE, AuthzScope.ORGANIZATION),
-        PermissionDefinition(Permissions.ORGANIZATION_USAGE_READ, AuthzScope.ORGANIZATION),
-        PermissionDefinition(Permissions.WORKSPACE_CREATE, AuthzScope.ORGANIZATION),
-        PermissionDefinition(Permissions.WORKSPACE_DELETE, AuthzScope.ORGANIZATION),
-        PermissionDefinition(Permissions.WORKSPACE_LIST_ALL, AuthzScope.ORGANIZATION),
+        PermissionDefinition(Permissions.ORGANIZATION_READ, AuthzScope.ORGANIZATION, "조직 정보, 멤버, 소속 workspace 조회"),
+        PermissionDefinition(Permissions.ORGANIZATION_UPDATE, AuthzScope.ORGANIZATION, "조직 이름 변경"),
+        PermissionDefinition(Permissions.ORGANIZATION_DELETE, AuthzScope.ORGANIZATION, "조직 삭제 (workspace 가 없을 때)"),
+        PermissionDefinition(Permissions.ORGANIZATION_BILLING_MANAGE, AuthzScope.ORGANIZATION, "결제 관리 (기능 예정)"),
+        PermissionDefinition(Permissions.ORGANIZATION_OWNERSHIP_TRANSFER, AuthzScope.ORGANIZATION, "조직 소유권 이전"),
+        PermissionDefinition(Permissions.ORGANIZATION_MEMBER_MANAGE, AuthzScope.ORGANIZATION, "조직 멤버 추가, 역할 변경, 내보내기 (Owner 는 제외)"),
+        PermissionDefinition(Permissions.ORGANIZATION_USAGE_READ, AuthzScope.ORGANIZATION, "조직 사용량 조회 (기능 예정)"),
+        PermissionDefinition(Permissions.WORKSPACE_CREATE, AuthzScope.ORGANIZATION, "조직에 workspace 생성"),
+        PermissionDefinition(Permissions.WORKSPACE_DELETE, AuthzScope.ORGANIZATION, "조직의 workspace 삭제"),
+        PermissionDefinition(Permissions.WORKSPACE_LIST_ALL, AuthzScope.ORGANIZATION, "조직의 모든 workspace 조회 (소속되지 않은 것 포함)"),
 
-        PermissionDefinition(Permissions.WORKSPACE_READ, AuthzScope.WORKSPACE),
-        PermissionDefinition(Permissions.WORKSPACE_UPDATE, AuthzScope.WORKSPACE),
-        PermissionDefinition(Permissions.WORKSPACE_MEMBER_MANAGE, AuthzScope.WORKSPACE),
-        PermissionDefinition(Permissions.PROMPT_READ, AuthzScope.WORKSPACE),
-        PermissionDefinition(Permissions.PROMPT_WRITE, AuthzScope.WORKSPACE),
-        PermissionDefinition(Permissions.PROMPT_DELETE, AuthzScope.WORKSPACE),
-        PermissionDefinition(Permissions.PROMPT_REF_PUBLISH, AuthzScope.WORKSPACE),
-        PermissionDefinition(Permissions.API_KEY_MANAGE, AuthzScope.WORKSPACE),
-        PermissionDefinition(Permissions.CALL_OPTION_MANAGE, AuthzScope.WORKSPACE),
-        PermissionDefinition(Permissions.LLM_EXECUTE, AuthzScope.WORKSPACE),
-        PermissionDefinition(Permissions.CALL_LOG_READ, AuthzScope.WORKSPACE),
+        PermissionDefinition(Permissions.WORKSPACE_READ, AuthzScope.WORKSPACE, "workspace 정보, 멤버, 기본 옵션, 모델 조회"),
+        PermissionDefinition(Permissions.WORKSPACE_UPDATE, AuthzScope.WORKSPACE, "workspace 이름, 설명, 기본 모델 변경"),
+        PermissionDefinition(Permissions.WORKSPACE_MEMBER_MANAGE, AuthzScope.WORKSPACE, "workspace 멤버 추가, 역할 변경, 내보내기"),
+        PermissionDefinition(Permissions.PROMPT_READ, AuthzScope.WORKSPACE, "프롬프트와 버전 조회"),
+        PermissionDefinition(Permissions.PROMPT_WRITE, AuthzScope.WORKSPACE, "프롬프트 작성, 수정, 브랜치 관리"),
+        PermissionDefinition(Permissions.PROMPT_DELETE, AuthzScope.WORKSPACE, "프롬프트 삭제"),
+        PermissionDefinition(Permissions.PROMPT_REF_PUBLISH, AuthzScope.WORKSPACE, "프롬프트 태그 발행과 최신 태그 지정"),
+        PermissionDefinition(Permissions.API_KEY_MANAGE, AuthzScope.WORKSPACE, "LLM API 키 등록, 수정, 삭제"),
+        PermissionDefinition(Permissions.CALL_OPTION_MANAGE, AuthzScope.WORKSPACE, "workspace 기본 호출 옵션 변경"),
+        PermissionDefinition(Permissions.LLM_EXECUTE, AuthzScope.WORKSPACE, "LLM 실행과 취소, API 키 목록 조회"),
+        PermissionDefinition(Permissions.CALL_LOG_READ, AuthzScope.WORKSPACE, "LLM 호출 기록 조회"),
     )
 
     /** 함의 대상(WORKSPACE 역할)이 먼저 오도록 정렬되어 있다. */
@@ -116,6 +120,7 @@ object AuthzCatalog {
         RoleDefinition(
             code = Roles.PLATFORM_ADMIN,
             scope = AuthzScope.PLATFORM,
+            description = "플랫폼 관리자. 사용자, 조직, LLM 카탈로그를 관리하고 전체 콘텐츠를 읽기 전용으로 본다",
             impliedWorkspaceRole = null,
             permissions = setOf(
                 Permissions.LLM_VENDOR_MANAGE,
@@ -130,6 +135,7 @@ object AuthzCatalog {
         RoleDefinition(
             code = Roles.WORKSPACE_ADMIN,
             scope = AuthzScope.WORKSPACE,
+            description = "workspace 관리자. workspace 의 모든 권한",
             impliedWorkspaceRole = null,
             permissions = setOf(
                 Permissions.WORKSPACE_READ,
@@ -148,6 +154,7 @@ object AuthzCatalog {
         RoleDefinition(
             code = Roles.WORKSPACE_MEMBER,
             scope = AuthzScope.WORKSPACE,
+            description = "workspace 멤버. 프롬프트 작성과 LLM 실행",
             impliedWorkspaceRole = null,
             permissions = setOf(
                 Permissions.WORKSPACE_READ,
@@ -160,6 +167,7 @@ object AuthzCatalog {
         RoleDefinition(
             code = Roles.ORG_OWNER,
             scope = AuthzScope.ORGANIZATION,
+            description = "조직 소유자(1명). 조직의 모든 권한, 조직의 모든 workspace 에서 WORKSPACE_ADMIN",
             impliedWorkspaceRole = Roles.WORKSPACE_ADMIN,
             permissions = setOf(
                 Permissions.ORGANIZATION_READ,
@@ -177,6 +185,7 @@ object AuthzCatalog {
         RoleDefinition(
             code = Roles.ORG_ADMIN,
             scope = AuthzScope.ORGANIZATION,
+            description = "조직 관리자. 소유권 이전, 삭제를 뺀 조직 권한, 조직의 모든 workspace 에서 WORKSPACE_ADMIN",
             impliedWorkspaceRole = Roles.WORKSPACE_ADMIN,
             permissions = setOf(
                 Permissions.ORGANIZATION_READ,
@@ -191,6 +200,7 @@ object AuthzCatalog {
         RoleDefinition(
             code = Roles.ORG_MEMBER,
             scope = AuthzScope.ORGANIZATION,
+            description = "조직 멤버. 조직 조회만 가능, workspace 권한은 workspace 멤버십으로 받는다",
             impliedWorkspaceRole = null,
             permissions = setOf(
                 Permissions.ORGANIZATION_READ,

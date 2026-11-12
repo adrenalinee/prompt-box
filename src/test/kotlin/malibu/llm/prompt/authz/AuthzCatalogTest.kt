@@ -19,6 +19,17 @@ class AuthzCatalogTest {
     }
 
     @Test
+    fun `권한과 역할은 모두 200자 이하의 설명을 갖는다`() {
+        val descriptions = AuthzCatalog.permissions.map { it.code to it.description } +
+            AuthzCatalog.roles.map { it.code to it.description }
+        descriptions.forEach { (code, description) ->
+            assertTrue(description.isNotBlank() && description.length <= 200, "$code 의 설명: '$description'")
+            // 001_init.sql 에 그대로 들어가므로 따옴표를 쓰지 않는다
+            assertTrue('\'' !in description, "$code 의 설명에 작은따옴표가 있습니다.")
+        }
+    }
+
+    @Test
     fun `Permissions 상수는 모두 카탈로그에 정의되어 있다`() {
         val constants = Permissions::class.java.declaredFields
             .filter { java.lang.reflect.Modifier.isStatic(it.modifiers) && it.type == String::class.java }
