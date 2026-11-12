@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import malibu.llm.prompt.api.writeApiError
+import malibu.llm.prompt.service.UserChangedEvent
 import org.springframework.core.convert.converter.Converter
 import org.springframework.http.HttpStatus
 import org.springframework.security.authentication.AbstractAuthenticationToken
@@ -14,6 +15,7 @@ import org.springframework.security.oauth2.jwt.JwtClaimNames
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint
 import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.stereotype.Component
+import org.springframework.transaction.event.TransactionalEventListener
 import java.time.Duration
 
 /**
@@ -41,6 +43,10 @@ class UserJwtAuthenticationConverter(
 
     /** 사용자 상태/계정 연결이 바뀌었을 때 호출한다. */
     fun invalidateAll() = cache.invalidateAll()
+
+    /** 커밋된 뒤에 비운다. 커밋 전에 비우면 다른 요청이 옛 상태를 다시 캐시할 수 있다. */
+    @TransactionalEventListener(fallbackExecution = true)
+    fun onUserChanged(event: UserChangedEvent) = invalidateAll()
 
     companion object {
         val CACHE_TTL: Duration = Duration.ofSeconds(30)

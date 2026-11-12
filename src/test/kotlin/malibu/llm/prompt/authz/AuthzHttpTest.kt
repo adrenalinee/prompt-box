@@ -38,7 +38,7 @@ import java.util.UUID
  * 실제 보안 필터 체인(local 프로파일: /dev/token 발급 토큰)으로 인증 → 판정 → HTTP 상태 매핑을 검사한다.
  * - NOT_MEMBER 404, DENIED 403(code=FORBIDDEN), 토큰 없음/무효 401, 비활성 사용자 403(code=USER_DISABLED)
  *
- * 판정 대상 엔드포인트는 이 테스트에만 등록되는 ProbeController 를 쓴다(4단계 전이라 실제 컨트롤러에는 아직 @PreAuthorize 가 없다).
+ * 판정 빈 자체를 검사하기 위해 이 테스트에만 등록되는 ProbeController 를 쓴다. 실제 엔드포인트는 AuthzEndpointsHttpTest.
  */
 @SpringBootTest
 @AutoConfigureMockMvc

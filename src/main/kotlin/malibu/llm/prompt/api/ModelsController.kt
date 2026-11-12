@@ -1,5 +1,6 @@
 package malibu.llm.prompt.api
 
+import malibu.llm.prompt.authz.Permissions
 import malibu.llm.prompt.data.dto.LlmModelCreateRequest
 import malibu.llm.prompt.data.dto.LlmModelResponse
 import malibu.llm.prompt.data.dto.LlmModelSearchSpec
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.HttpStatus
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -28,6 +30,7 @@ class ModelsController(
 ) {
 
     @PostMapping
+    @PreAuthorize("@platformAuthz.has('${Permissions.LLM_MODEL_MANAGE}')")
     @ResponseStatus(HttpStatus.CREATED)
     fun create(@RequestBody request: LlmModelCreateRequest): LlmModelResponse {
         val model = llmCatalogService.createModel(
@@ -44,6 +47,7 @@ class ModelsController(
     }
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     fun list(
         @ParameterObject searchSpec: LlmModelSearchSpec,
         @PageableDefault(size = 20, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable,
@@ -51,11 +55,13 @@ class ModelsController(
         llmCatalogService.listModels(searchSpec, pageable).toResponse { it.toResponse() }
 
     @GetMapping("/{modelId}")
+    @PreAuthorize("isAuthenticated()")
     fun get(@PathVariable modelId: Long): LlmModelResponse {
         return llmCatalogService.getModel(modelId).toResponse()
     }
 
     @PatchMapping("/{modelId}")
+    @PreAuthorize("@platformAuthz.has('${Permissions.LLM_MODEL_MANAGE}')")
     fun update(
         @PathVariable modelId: Long,
         @RequestBody request: LlmModelUpdateRequest,
@@ -74,6 +80,7 @@ class ModelsController(
     }
 
     @DeleteMapping("/{modelId}")
+    @PreAuthorize("@platformAuthz.has('${Permissions.LLM_MODEL_MANAGE}')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun delete(@PathVariable modelId: Long) {
         llmCatalogService.deleteModel(modelId)

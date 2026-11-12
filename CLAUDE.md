@@ -38,16 +38,16 @@ A vendor-neutral streaming abstraction, published separately to GitHub Packages 
 - `LlmStreamCancelRegistry` maps a call-log id to a cancel sink. `FakeLlmStreamClient` is available for tests.
 
 ### Root app (`malibu.llm.prompt`)
-- **Execution flow:** `POST /workspaces/{id}/llm-calls` (`WorkspacesController`, SSE `text/event-stream`) goes to `ExecuteStreamingOrchestratorImpl`, which:
+- **Execution flow:** `POST /workspaces/{id}/llm-calls` (`LlmCallsController`, SSE `text/event-stream`) goes to `ExecuteStreamingOrchestratorImpl`, which:
   1. validates that the workspace, model, API key, and vendor match;
   2. resolves instructions from a `PromptRef` (a prompt version) or raw text, plus additional input items;
   3. merges workspace `DefaultLlmCallOptions` with the request overrides and filters them by `LlmModelType`;
   4. decrypts the API key (`ApiKeyCipher`, AES key at `app.security.api-key-encryption.key`) and streams from the provider client.
 
   The orchestrator emits a `LogCreated` event first, persists output items, parts, and token usage to `LlmCallLog` through `LlmCallLogTxService`, and supports cancellation through `LlmCallCancelService`/the cancel registry.
-- **Layers:** `api/` holds the REST controllers, `service/` the transactional services, and `data/entity` + `data/repo` the JPA entities and Spring Data repositories (spring-data-rest is also on the classpath). Domain exceptions live in `error/Exceptions.kt` and map to HTTP responses in `ApiExceptionHandler`.
+- **Layers:** `api/` holds the REST controllers, `service/` the transactional services, and `data/entity` + `data/repo` the JPA entities and Spring Data repositories. Workspace content lives under `/workspaces/{workspaceId}/...`; platform-wide read-only views are under `/admin/...`. Domain exceptions live in `error/Exceptions.kt` and map to HTTP responses in `ApiExceptionHandler`.
 - **Schema:** Liquibase SQL changesets live in `src/main/resources/db/changelog/changes/NNN_*.sql`, listed in `db.changelog-master.xml`. Add a new numbered changeset for schema changes. Changesets are PostgreSQL-only (012 uses a PL/pgSQL `DO` block), so they don't run on H2. H2 relies on `ddl-auto=update` from the entities, so keep entities and changesets in sync.
-- **Security:** an OAuth2 resource server validating Google-issued JWTs. Everything except Swagger (`/swagger-ui`, `/api-docs`) needs authentication. With the `local` profile, `LocalAuthConfig` swaps in an HS256 `JwtDecoder` (secret in `application-local.properties`), and `POST /dev/token` (`DevTokenController`, which needs no auth) issues test tokens. Combine it with the DB profile, e.g. `--spring.profiles.active=local` for H2.
+- **Security:** an OAuth2 resource server validating Google-issued JWTs; `UserJwtAuthenticationConverter` maps the token to a `users` row. Everything except Swagger (`/swagger-ui`, `/api-docs`) needs authentication. Authorization is RBAC (`docs/authz-spec.md`): every endpoint carries `@PreAuthorize` with `@platformAuthz` / `@orgAuthz` / `@wsAuthz`, and `EndpointAuthorizationMappingTest` checks each one against the spec's mapping table, so new endpoints must be added there. With the `local` profile, `LocalAuthConfig` swaps in an HS256 `JwtDecoder` (secret in `application-local.properties`), and `POST /dev/token` (`DevTokenController`, which needs no auth) issues test tokens. Combine it with the DB profile, e.g. `--spring.profiles.active=local` for H2.
 - **Jackson:** the app is mostly on Jackson 3 (`tools.jackson.*`). The `com.fasterxml` imports are still used where the OpenAI SDK and Swagger require them.
 - `EntityManagerExceptionTranslationConfig` (enabled in tests via `app.exception-translation.em.override`) wraps the EntityManager so that constraint violations surface as `DataIntegrityViolationException`.
 

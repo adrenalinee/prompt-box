@@ -2,13 +2,22 @@ package malibu.llm.prompt.service
 
 import jakarta.persistence.EntityManager
 import malibu.llm.prompt.authz.Roles
+import malibu.llm.prompt.authz.AuthzScope
 import malibu.llm.prompt.data.AuthProvider
+import malibu.llm.prompt.data.UserStatus
 import malibu.llm.prompt.data.entity.PlatformRoleAssignment
 import malibu.llm.prompt.data.entity.Role
 import malibu.llm.prompt.data.entity.User
+import malibu.llm.prompt.data.repo.PlatformRoleAssignmentRepository
 import malibu.llm.prompt.data.repo.RoleRepository
 import malibu.llm.prompt.data.repo.UserRepository
 import malibu.llm.prompt.error.EmailAlreadyRegisteredException
+import malibu.llm.prompt.error.InvalidRoleException
+import malibu.llm.prompt.error.SelfLockoutNotAllowedException
+import malibu.llm.prompt.error.UserNotFoundException
+import org.springframework.context.ApplicationEventPublisher
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -23,6 +32,8 @@ class UserAccountService(
     private val roleRepository: RoleRepository,
     private val organizationService: OrganizationService,
     private val workspaceService: WorkspaceService,
+    private val platformRoleAssignmentRepository: PlatformRoleAssignmentRepository,
+    private val eventPublisher: ApplicationEventPublisher,
     private val entityManager: EntityManager,
 ) {
     private val logger = KotlinLogging.logger {}
@@ -94,6 +105,75 @@ class UserAccountService(
         return user
     }
 
+    // ---- 플랫폼 관리 (/admin/users) ----
+
+    @Transactional(readOnly = true)
+    fun list(query: String?, pageable: Pageable): Page<User> =
+        if (query.isNullOrBlank()) {
+            userRepository.findAll(pageable)
+        } else {
+            userRepository.findByEmailContainingIgnoreCaseOrNameContainingIgnoreCase(query, query, pageable)
+        }
+
+    @Transactional(readOnly = true)
+    fun get(userId: UUID): User = userRepository.findById(userId).orElseThrow { UserNotFoundException(userId) }
+
+    @Transactional(readOnly = true)
+    fun platformRoles(userId: UUID): List<String> =
+        platformRoleAssignmentRepository.findByIdUserId(userId).map { it.role.code }.sorted()
+
+    /**
+     * 이름 / 상태 / 플랫폼 역할 변경. platformRoles 를 주면 그 목록으로 교체한다.
+     * 자기 자신을 비활성화하거나 자신의 PLATFORM_ADMIN 을 회수할 수 없다(관리자 잠김 방지).
+     */
+    @Transactional
+    fun update(
+        actorUserId: UUID,
+        userId: UUID,
+        name: String?,
+        status: UserStatus?,
+        platformRoles: List<String>?,
+    ): User {
+        val user = get(userId)
+        if (actorUserId == userId) {
+            val disablingSelf = status != null && status != UserStatus.ACTIVE
+            val droppingOwnAdmin = platformRoles != null && Roles.PLATFORM_ADMIN !in platformRoles
+            if (disablingSelf || droppingOwnAdmin) {
+                throw SelfLockoutNotAllowedException()
+            }
+        }
+        if (!name.isNullOrBlank()) {
+            user.name = name
+        }
+        if (status != null) {
+            user.status = status
+        }
+        if (platformRoles != null) {
+            replacePlatformRoles(user, platformRoles.toSet(), actorUserId)
+        }
+        eventPublisher.publishEvent(UserChangedEvent(userId))
+        return user
+    }
+
+    private fun replacePlatformRoles(user: User, roleCodes: Set<String>, actorUserId: UUID) {
+        val roles = roleCodes.map { code ->
+            roleRepository.findByCode(code)?.takeIf { it.scope == AuthzScope.PLATFORM }
+                ?: throw InvalidRoleException(code, Roles.PLATFORM_ADMIN)
+        }
+        val current = platformRoleAssignmentRepository.findByIdUserId(requireNotNull(user.id))
+        current.filter { it.role.code !in roleCodes }.forEach { platformRoleAssignmentRepository.delete(it) }
+        val currentCodes = current.map { it.role.code }.toSet()
+        roles.filter { it.code !in currentCodes }.forEach { role ->
+            entityManager.persist(
+                PlatformRoleAssignment(
+                    user = user,
+                    role = role,
+                    grantedBy = entityManager.getReference(User::class.java, actorUserId),
+                )
+            )
+        }
+    }
+
     /**
      * PLATFORM_ADMIN 역할 행을 잠근다. 사용자 생성이 직렬화되어 "users 가 비어 있는가" 판정이 안전해진다.
      */
@@ -135,7 +215,7 @@ class UserAccountService(
             name = DEFAULT_WORKSPACE_NAME,
             description = null,
             defaultModelId = null,
-            creator = user,
+            creatorUserId = user.id,
         )
         return user
     }
@@ -146,3 +226,6 @@ class UserAccountService(
         fun normalizeEmail(email: String): String = email.trim().lowercase()
     }
 }
+
+/** 사용자 상태/정보가 바뀌었다. 인증 캐시(UserJwtAuthenticationConverter)를 비운다. */
+data class UserChangedEvent(val userId: UUID)

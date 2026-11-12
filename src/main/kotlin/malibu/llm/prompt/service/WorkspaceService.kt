@@ -14,6 +14,7 @@ import malibu.llm.prompt.data.repo.LlmCallLogRepository
 import malibu.llm.prompt.data.repo.LlmModelRepository
 import malibu.llm.prompt.data.repo.OrganizationRepository
 import malibu.llm.prompt.data.repo.PromptRepository
+import malibu.llm.prompt.data.repo.WorkspaceMemberRepository
 import malibu.llm.prompt.data.repo.WorkspaceRepository
 import malibu.llm.prompt.error.ModelNotFoundException
 import malibu.llm.prompt.error.OrganizationNotFoundException
@@ -38,12 +39,14 @@ class WorkspaceService(
     private val llmCallLogRepository: LlmCallLogRepository,
     private val organizationRepository: OrganizationRepository,
     private val roleRepository: RoleRepository,
+    private val workspaceMemberRepository: WorkspaceMemberRepository,
     private val entityManager: EntityManager,
 ) {
 
+    /** accessibleUserId 가 있으면 그 사용자가 접근 가능한 workspace 만. (직접 할당 ∪ org 역할 함의, ACTIVE org) */
     @Transactional(readOnly = true)
-    fun list(searchSpec: WorkspaceSearchSpec, pageable: Pageable): Page<Workspace> {
-        return workspaceRepository.searchWorkspaces(searchSpec, pageable)
+    fun list(searchSpec: WorkspaceSearchSpec, pageable: Pageable, accessibleUserId: UUID? = null): Page<Workspace> {
+        return workspaceRepository.searchWorkspaces(searchSpec, pageable, accessibleUserId)
     }
 
     @Transactional(readOnly = true)
@@ -53,7 +56,7 @@ class WorkspaceService(
     }
 
     /**
-     * workspace 를 만든다. creator 가 있으면 같은 트랜잭션에서 WORKSPACE_ADMIN 으로 등록한다. (authz-spec §7)
+     * workspace 를 만든다. creatorUserId 가 있으면 같은 트랜잭션에서 WORKSPACE_ADMIN 으로 등록한다. (authz-spec §7)
      * creator 는 그 org 의 멤버여야 한다(PostgreSQL 복합 FK).
      */
     @Transactional
@@ -62,7 +65,7 @@ class WorkspaceService(
         name: String,
         description: String?,
         defaultModelId: Long?,
-        creator: User? = null,
+        creatorUserId: UUID? = null,
     ): Workspace {
         val organization = organizationRepository.findById(organizationId)
             .orElseThrow { OrganizationNotFoundException(organizationId) }
@@ -80,11 +83,11 @@ class WorkspaceService(
                 defaultModel = defaultModel,
             )
         )
-        if (creator != null) {
+        if (creatorUserId != null) {
             entityManager.persist(
                 WorkspaceMember(
                     workspace = workspace,
-                    user = creator,
+                    user = entityManager.getReference(User::class.java, creatorUserId),
                     organizationId = organizationId,
                     role = roleRepository.findByCode(Roles.WORKSPACE_ADMIN)
                         ?: throw IllegalStateException("역할 시드가 없습니다: ${Roles.WORKSPACE_ADMIN}"),
@@ -127,6 +130,9 @@ class WorkspaceService(
         if (promptCount > 0 || apiKeyCount > 0 || callLogCount > 0) {
             throw WorkspaceHasDependenciesException()
         }
+        // PostgreSQL 은 workspace_member 가 cascade 되지만 H2(ddl-auto) 스키마에는 cascade 가 없다.
+        workspaceMemberRepository.deleteByWorkspaceId(workspaceId)
+        defaultLlmCallOptionsRepository.findByWorkspaceId(workspaceId)?.let { defaultLlmCallOptionsRepository.delete(it) }
         workspaceRepository.delete(workspace)
     }
 

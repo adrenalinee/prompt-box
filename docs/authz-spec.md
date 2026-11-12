@@ -290,11 +290,11 @@ select distinct p.code
 | 엔드포인트 | 권한 | 비고 |
 |---|---|---|
 | `POST /dev/token` | permitAll (local) | 사용자 find-or-create 후 토큰 발급 (§10) |
-| `POST /dev/init` | permitAll (local) | vendor/model 카탈로그만 생성 |
+| `POST /dev/init` | 인증 (local) | 카탈로그 생성 + 호출자 기본 workspace 에 샘플 프롬프트 |
 | `GET /me` | 인증 | 사용자 정보, 플랫폼 권한, 소속 org |
 | `GET /admin/users` | plat `platform.user:manage` | |
 | `POST /admin/users` | plat `platform.user:manage` | 사전 등록. 개인 org + 기본 workspace 생성 |
-| `PATCH /admin/users/{userId}` | plat `platform.user:manage` | status, 플랫폼 역할 부여/회수 |
+| `PATCH /admin/users/{userId}` | plat `platform.user:manage` | name, status, `platformRoles`(목록으로 교체). 자기 자신의 비활성화 / PLATFORM_ADMIN 회수는 400 |
 
 **Organization**
 
@@ -322,7 +322,7 @@ select distinct p.code
 |---|---|
 | `GET /workspaces` | 인증 (내가 접근 가능한 workspace: 직접 ∪ 함의) |
 | `GET /workspaces/{workspaceId}` | ws `workspace:read` |
-| `GET /workspaces/{workspaceId}/my-permissions` | ws `workspace:read` |
+| `GET /workspaces/{workspaceId}/my-permissions` | ws `workspace:read` (응답에 workspace 대상 org 권한 `organizationPermissions` 포함: `workspace:delete` 버튼용) |
 | `PATCH /workspaces/{workspaceId}` | ws `workspace:update` |
 | `DELETE /workspaces/{workspaceId}` | org(ws) `workspace:delete` |
 | `GET /workspaces/{workspaceId}/members` | ws `workspace:read` |
@@ -371,7 +371,7 @@ select distinct p.code
 | `POST/PATCH/DELETE /models[/{modelId}]` | plat `llm_model:manage` |
 | `POST/PATCH/DELETE /llm-vendors[/{vendorId}]` | plat `llm_vendor:manage` |
 
-**예외**: `GET /`, Swagger, `/error` 는 permitAll. 어노테이션 점검 테스트의 허용 목록에 둔다. `organization.billing:manage`, `organization.usage:read` 는 시드만 있고 엔드포인트는 없다.
+**예외**: `GET /`, `POST /dev/token`, Swagger, `/error` 는 permitAll. 어노테이션 점검 테스트(`EndpointAuthorizationMappingTest`)의 허용 목록에 둔다. 이 테스트는 코드의 모든 엔드포인트 권한을 이 표와 비교한다. `organization.billing:manage`, `organization.usage:read` 는 시드만 있고 엔드포인트는 없다.
 
 ---
 
@@ -394,6 +394,7 @@ v2: 개발 단계이므로 수행하지 않는다. `001_init.sql` 을 직접 수
 
 - **마지막 OWNER 보호**: org에는 ORG_OWNER가 1명 이상이어야 한다. 강등/탈퇴/추방 시 `organization` 행을 `SELECT ... FOR UPDATE`로 잠근 뒤 검사한다.
 - **역할 상한**: `organization.member:manage`로는 ORG_OWNER를 부여/회수할 수 없다. OWNER 변경은 `organization.ownership:transfer`가 필요하다.
+  - 4단계 구현: 멤버 API 는 ORG_OWNER 부여, OWNER 인 멤버의 역할 변경/추방을 모두 403 `OWNER_CHANGE_NOT_ALLOWED` 로 거부한다. 소유권 이전은 대상→OWNER, 호출자→ORG_ADMIN 이며 org 행을 `FOR UPDATE` 로 잠근다. 따라서 현재 경로로는 OWNER 수가 0 이 되지 않는다. 6단계에서 남은 경우(복수 OWNER 간 강등/추방 허용 여부, 동시성)를 정리한다.
 - **workspace 생성자**: workspace를 만든 사용자는 같은 트랜잭션에서 그 workspace의 WORKSPACE_ADMIN으로 등록된다(ORG_ADMIN/OWNER는 함의로 이미 ADMIN이지만, 명시적 멤버십도 남긴다).
 - **org 생성자**: org를 만든 사용자(또는 지정된 `ownerUserId`)는 같은 트랜잭션에서 ORG_OWNER가 된다.
 - **사용자 생성(v2)**: 사용자를 만들 때 같은 트랜잭션에서 개인 org(ORG_OWNER) + 기본 workspace(WORKSPACE_ADMIN)를 만든다.
@@ -406,7 +407,7 @@ v2: 개발 단계이므로 수행하지 않는다. `001_init.sql` 을 직접 수
 1. **조사**: §0 결과와 엔드포인트–권한 매핑 표 보고. (완료)
 2. **스키마/시드 마이그레이션**: §2, §3. 엔티티, H2 로컬 시드, `ddl-auto` 프로파일 정리. §9의 DB 제약 테스트와 시드–상수 일치 테스트 통과.
 3. **인증/판정 컴포넌트**: JWT → userId 변환(§10), `/dev/token` 사용자 연동, `platformAuthz`, `orgAuthz`, `wsAuthz`, 권한 조회 리포지토리, 3상태 판정과 예외 매핑, `@EnableMethodSecurity`. 단위/통합 테스트 포함.
-4. **엔드포인트 적용**: §4.5 대로 경로 변경과 `@PreAuthorize` 부착, Spring Data REST 제거, `/me`·`my-permissions`·`/admin/...`·org/멤버 API 추가. 권한 어노테이션이 없는 엔드포인트가 남지 않았는지 검사하는 테스트 추가.
+4. **엔드포인트 적용**: §4.5 대로 경로 변경과 `@PreAuthorize` 부착, Spring Data REST 제거, `/me`·`my-permissions`·`/admin/...`·org/멤버 API 추가. 권한 어노테이션이 없는 엔드포인트가 남지 않았는지 검사하는 테스트 추가. (완료)
 5. **IDOR 교체**: §5.
 6. **서비스 불변식**: §7.
 

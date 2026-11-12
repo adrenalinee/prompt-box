@@ -2,6 +2,8 @@ package malibu.llm.prompt.data.repo
 
 import malibu.llm.prompt.data.AuthProvider
 import malibu.llm.prompt.data.entity.User
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
@@ -11,4 +13,10 @@ interface UserRepository : JpaRepository<User, UUID> {
     fun existsByEmail(email: String): Boolean
 
     fun findByAuthProviderAndAuthSubject(authProvider: AuthProvider, authSubject: String): User?
+
+    fun findByEmailContainingIgnoreCaseOrNameContainingIgnoreCase(
+        email: String,
+        name: String,
+        pageable: Pageable,
+    ): Page<User>
 }

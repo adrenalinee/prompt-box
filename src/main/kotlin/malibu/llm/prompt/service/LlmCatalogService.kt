@@ -243,7 +243,6 @@ class LlmCatalogService(
     @Transactional
     fun updateApiKey(
         apiKeyId: UUID,
-        workspaceId: UUID?,
         vendorId: UUID?,
         name: String?,
         value: String?,
@@ -251,11 +250,6 @@ class LlmCatalogService(
     ): LlmApiKey {
         val apiKey = llmApiKeyRepository.findById(apiKeyId)
             .orElseThrow { ApiKeyNotFoundException(apiKeyId) }
-        if (workspaceId != null) {
-            val workspace = workspaceRepository.findById(workspaceId)
-                .orElseThrow { WorkspaceNotFoundException(workspaceId) }
-            apiKey.workspace = workspace
-        }
         if (vendorId != null) {
             val vendor = llmVendorRepository.findById(vendorId)
                 .orElseThrow { VendorNotFoundException(vendorId) }

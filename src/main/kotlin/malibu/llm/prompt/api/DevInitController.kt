@@ -7,6 +7,7 @@ import malibu.llm.prompt.service.LlmCatalogService
 import malibu.llm.prompt.service.PromptService
 import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpStatus
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -28,6 +29,7 @@ class DevInitController(
     @Transactional
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/init")
+    @PreAuthorize("isAuthenticated()")
     fun init() {
         // workspace 는 사용자 가입(/dev/token) 시 개인 org 와 함께 만들어진다.
         // 카탈로그를 만들고, 샘플 프롬프트는 호출한 사용자의 첫 workspace(기본 workspace)에 넣는다.

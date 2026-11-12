@@ -5,15 +5,12 @@ import io.mockk.every
 import io.mockk.mockk
 import malibu.llm.prompt.data.dto.ExecuteApiRequest
 import malibu.llm.prompt.data.dto.InputItemRequest
-import malibu.llm.prompt.api.WorkspacesController
 import malibu.llm.prompt.ExecuteRequest
 import malibu.llm.prompt.ExecuteStreamingOrchestrator
 import malibu.llm.prompt.data.InputRole
 import malibu.llm.streamclient.LlmStreamEvent
+import malibu.llm.prompt.service.LlmCallCancelService
 import malibu.llm.prompt.service.LlmCallLogService
-import malibu.llm.prompt.service.LlmCatalogService
-import malibu.llm.prompt.service.PromptService
-import malibu.llm.prompt.service.WorkspaceService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -21,18 +18,14 @@ import org.springframework.http.MediaType
 import reactor.core.publisher.Flux
 import java.util.UUID
 
-class WorkspacesControllerExecuteTest {
-    private val workspaceService = mockk<WorkspaceService>()
-    private val promptService = mockk<PromptService>()
-    private val llmCatalogService = mockk<LlmCatalogService>()
+class LlmCallsControllerExecuteTest {
     private val llmCallLogService = mockk<LlmCallLogService>()
+    private val llmCallCancelService = mockk<LlmCallCancelService>()
     private val executeStreamingOrchestrator = mockk<ExecuteStreamingOrchestrator>()
 
-    private val controller = WorkspacesController(
-        workspaceService = workspaceService,
-        promptService = promptService,
-        llmCatalogService = llmCatalogService,
+    private val controller = LlmCallsController(
         llmCallLogService = llmCallLogService,
+        llmCallCancelService = llmCallCancelService,
         executeStreamingOrchestrator = executeStreamingOrchestrator,
     )
 
@@ -76,7 +69,7 @@ class WorkspacesControllerExecuteTest {
 
     @Test
     fun `execute OpenAPI schema documents function call stream event`() {
-        val operation = WorkspacesController::class.java.declaredMethods
+        val operation = LlmCallsController::class.java.declaredMethods
             .single { it.name == "execute" }
             .getAnnotation(Operation::class.java)
 

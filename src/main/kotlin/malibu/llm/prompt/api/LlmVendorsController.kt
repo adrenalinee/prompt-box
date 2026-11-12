@@ -1,5 +1,6 @@
 package malibu.llm.prompt.api
 
+import malibu.llm.prompt.authz.Permissions
 import malibu.llm.prompt.data.dto.LlmVendorCreateRequest
 import malibu.llm.prompt.data.dto.LlmVendorResponse
 import malibu.llm.prompt.data.dto.LlmVendorSearchSpec
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.HttpStatus
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -29,6 +31,7 @@ class LlmVendorsController(
 ) {
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     fun list(
         @ParameterObject searchSpec: LlmVendorSearchSpec,
         @PageableDefault(size = 20, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable,
@@ -36,6 +39,7 @@ class LlmVendorsController(
         llmCatalogService.listVendors(searchSpec, pageable).toResponse { it.toResponse() }
 
     @PostMapping
+    @PreAuthorize("@platformAuthz.has('${Permissions.LLM_VENDOR_MANAGE}')")
     @ResponseStatus(HttpStatus.CREATED)
     fun create(@RequestBody request: LlmVendorCreateRequest): LlmVendorResponse {
         val vendor = llmCatalogService.createVendor(request.name, request.description)
@@ -43,11 +47,13 @@ class LlmVendorsController(
     }
 
     @GetMapping("/{vendorId}")
+    @PreAuthorize("isAuthenticated()")
     fun get(@PathVariable vendorId: UUID): LlmVendorResponse {
         return llmCatalogService.getVendor(vendorId).toResponse()
     }
 
     @PatchMapping("/{vendorId}")
+    @PreAuthorize("@platformAuthz.has('${Permissions.LLM_VENDOR_MANAGE}')")
     fun update(
         @PathVariable vendorId: UUID,
         @RequestBody request: LlmVendorUpdateRequest,
@@ -56,6 +62,7 @@ class LlmVendorsController(
     }
 
     @DeleteMapping("/{vendorId}")
+    @PreAuthorize("@platformAuthz.has('${Permissions.LLM_VENDOR_MANAGE}')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun delete(@PathVariable vendorId: UUID) {
         llmCatalogService.deleteVendor(vendorId)

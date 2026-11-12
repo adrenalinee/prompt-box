@@ -9,11 +9,11 @@ import java.util.UUID
 
 data class WorkspaceSearchSpec(
     val name: String? = null,
+    val organizationId: UUID? = null,
 )
 
+/** POST /organizations/{organizationId}/workspaces */
 data class WorkspaceCreateRequest(
-    // TODO(authz 4단계): POST /organizations/{organizationId}/workspaces 로 옮기면서 경로 변수로 바뀐다.
-    val organizationId: UUID,
     val name: String,
     val description: String? = null,
     val defaultModelId: Long? = null,

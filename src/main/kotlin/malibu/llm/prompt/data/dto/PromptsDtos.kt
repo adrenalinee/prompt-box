@@ -16,8 +16,8 @@ data class PromptRefSearchSpec(
     val name: String? = null,
 )
 
+/** POST /workspaces/{workspaceId}/prompts */
 data class PromptCreateRequest(
-    val workspaceId: UUID,
     val name: String,
     val description: String? = null,
     val instructions: String,

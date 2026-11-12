@@ -171,3 +171,42 @@ class CannotDeleteLatestTagException : ConflictException(
 class RefHasCallLogsException : ConflictException(
     message = "ref에 종속된 call log가 있습니다.",
 )
+
+class UserNotFoundException(userId: UUID) : NotFoundException(
+    message = "사용자를 찾을 수 없습니다. userId: $userId",
+)
+
+class UserEmailNotFoundException(email: String) : NotFoundException(
+    message = "등록된 사용자가 없습니다. email: $email",
+)
+
+class MemberNotFoundException : NotFoundException(
+    message = "멤버를 찾을 수 없습니다.",
+)
+
+class MemberAlreadyExistsException : ConflictException(
+    message = "이미 멤버입니다.",
+)
+
+/** workspace 멤버는 먼저 그 org 의 멤버여야 한다. */
+class NotOrganizationMemberException : BadRequestException(
+    message = "조직 멤버가 아닌 사용자는 workspace 멤버로 추가할 수 없습니다.",
+)
+
+class InvalidRoleException(roleCode: String, expected: String) : BadRequestException(
+    message = "사용할 수 없는 역할입니다. role: $roleCode, 가능한 역할: $expected",
+)
+
+/** 역할 상한: organization.member:manage 로는 ORG_OWNER 를 부여/회수할 수 없다. (authz-spec §7) */
+class OwnerRoleChangeNotAllowedException : ForbiddenException(
+    code = "OWNER_CHANGE_NOT_ALLOWED",
+    message = "ORG_OWNER 는 멤버 관리로 부여/회수할 수 없습니다. 소유권 이전을 사용하세요.",
+)
+
+class SelfLockoutNotAllowedException : BadRequestException(
+    message = "자기 자신을 비활성화하거나 자신의 플랫폼 역할을 회수할 수 없습니다.",
+)
+
+class OrganizationHasDependenciesException : ConflictException(
+    message = "organization에 workspace가 있습니다. workspace를 먼저 삭제하세요.",
+)
