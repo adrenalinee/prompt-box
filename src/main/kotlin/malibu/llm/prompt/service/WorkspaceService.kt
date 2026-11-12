@@ -1,8 +1,13 @@
 package malibu.llm.prompt.service
 
+import jakarta.persistence.EntityManager
+import malibu.llm.prompt.authz.Roles
 import malibu.llm.prompt.data.dto.WorkspaceSearchSpec
 import malibu.llm.prompt.data.entity.DefaultLlmCallOptions
+import malibu.llm.prompt.data.entity.User
 import malibu.llm.prompt.data.entity.Workspace
+import malibu.llm.prompt.data.entity.WorkspaceMember
+import malibu.llm.prompt.data.repo.RoleRepository
 import malibu.llm.prompt.data.repo.DefaultLlmCallOptionsRepository
 import malibu.llm.prompt.data.repo.LlmApiKeyRepository
 import malibu.llm.prompt.data.repo.LlmCallLogRepository
@@ -32,6 +37,8 @@ class WorkspaceService(
     private val llmApiKeyRepository: LlmApiKeyRepository,
     private val llmCallLogRepository: LlmCallLogRepository,
     private val organizationRepository: OrganizationRepository,
+    private val roleRepository: RoleRepository,
+    private val entityManager: EntityManager,
 ) {
 
     @Transactional(readOnly = true)
@@ -45,8 +52,18 @@ class WorkspaceService(
             .orElseThrow { WorkspaceNotFoundException(workspaceId) }
     }
 
+    /**
+     * workspace 를 만든다. creator 가 있으면 같은 트랜잭션에서 WORKSPACE_ADMIN 으로 등록한다. (authz-spec §7)
+     * creator 는 그 org 의 멤버여야 한다(PostgreSQL 복합 FK).
+     */
     @Transactional
-    fun create(organizationId: UUID, name: String, description: String?, defaultModelId: Long?): Workspace {
+    fun create(
+        organizationId: UUID,
+        name: String,
+        description: String?,
+        defaultModelId: Long?,
+        creator: User? = null,
+    ): Workspace {
         val organization = organizationRepository.findById(organizationId)
             .orElseThrow { OrganizationNotFoundException(organizationId) }
         val defaultModel = if (defaultModelId != null) {
@@ -55,7 +72,7 @@ class WorkspaceService(
         } else {
             null
         }
-        return workspaceRepository.save(
+        val workspace = workspaceRepository.save(
             Workspace(
                 organization = organization,
                 name = name,
@@ -63,6 +80,18 @@ class WorkspaceService(
                 defaultModel = defaultModel,
             )
         )
+        if (creator != null) {
+            entityManager.persist(
+                WorkspaceMember(
+                    workspace = workspace,
+                    user = creator,
+                    organizationId = organizationId,
+                    role = roleRepository.findByCode(Roles.WORKSPACE_ADMIN)
+                        ?: throw IllegalStateException("역할 시드가 없습니다: ${Roles.WORKSPACE_ADMIN}"),
+                )
+            )
+        }
+        return workspace
     }
 
     @Transactional

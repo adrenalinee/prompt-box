@@ -1,11 +1,10 @@
 package malibu.llm.prompt.api
 
 import malibu.llm.prompt.data.LlmModelType
-import malibu.llm.prompt.data.entity.Organization
-import malibu.llm.prompt.data.repo.OrganizationRepository
+import malibu.llm.prompt.data.repo.WorkspaceMemberRepository
+import malibu.llm.prompt.security.CurrentUser
 import malibu.llm.prompt.service.LlmCatalogService
 import malibu.llm.prompt.service.PromptService
-import malibu.llm.prompt.service.WorkspaceService
 import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
@@ -14,23 +13,26 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 
+/**
+ * local profile 전용. 로그인한 사용자로 호출한다(인증 필요).
+ */
 @Profile("local")
 @RestController
 @RequestMapping("/dev")
 class DevInitController(
-    private val workspaceService: WorkspaceService,
     private val llmCatalogService: LlmCatalogService,
     private val promptService: PromptService,
-    private val organizationRepository: OrganizationRepository,
+    private val workspaceMemberRepository: WorkspaceMemberRepository,
 ) {
 
     @Transactional
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/init")
     fun init() {
-        // TODO(authz 3단계): 사용자 가입 시 개인 org + 기본 workspace 를 만들게 되면 여기서는 카탈로그만 만든다.
-        val organization = organizationRepository.save(Organization(name = "test"))
-        val workspace = workspaceService.create(requireNotNull(organization.id), "test", null, null)
+        // workspace 는 사용자 가입(/dev/token) 시 개인 org 와 함께 만들어진다.
+        // 카탈로그를 만들고, 샘플 프롬프트는 호출한 사용자의 첫 workspace(기본 workspace)에 넣는다.
+        val workspaceId = workspaceMemberRepository.findFirstByIdUserIdOrderByJoinedAtAsc(CurrentUser.userId())
+            ?.id?.workspaceId
         val vendor = llmCatalogService.createVendor("openai", null)
         llmCatalogService.createVendor("xai", null)
         llmCatalogService.createVendor("google", null)
@@ -63,8 +65,11 @@ class DevInitController(
             description = "GPT-6.1 Sol은 복잡한 코딩, 컴퓨터 사용 및 전문 작업에서 Astra에 버금가는 성능을 더 낮은 비용으로 제공합니다."
         )
 
+        if (workspaceId == null) {
+            return
+        }
         promptService.createPrompt(
-            workspaceId = workspace.id!!,
+            workspaceId = workspaceId,
             name = "늑대, 양, 양배추 문제",
             instructions = "강을 건너야 하는 늑대, 양, 양배추 문제가 있어. 하지만 이번에는 늑대가 양을 먹지 않지만, 양배추가 스스로 움직여서 강으로 뛰어들려고 해. 사공은 한 번에 하나만 옮길 수 있고, 양배추를 붙잡아둘 추가 규칙이 필요해. 가장 안전한 이동 시나리오를 짜줘.",
             description = "reasoning 발생하는 질문",

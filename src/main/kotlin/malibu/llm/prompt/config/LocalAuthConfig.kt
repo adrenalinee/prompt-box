@@ -22,7 +22,7 @@ import javax.crypto.spec.SecretKeySpec
 /**
  * local profile 전용 인증 설정.
  * 구글 대신 HMAC 비밀키로 JWT 를 발급/검증해서 외부 의존 없이 인증할 수 있게 한다.
- * 토큰은 /dev/token 으로 발급받는다. (DevTokenController)
+ * 토큰은 /dev/token 으로 발급받는다. (DevTokenController, sub = users.id)
  */
 @Profile("local")
 @Configuration
@@ -48,12 +48,13 @@ class LocalAuthConfig {
 
     /**
      * 토큰 발급 엔드포인트는 인증 없이 호출 가능해야 하므로 기본 chain 보다 먼저 매칭되는 별도 chain 을 둔다.
+     * (/dev/init 은 호출한 사용자의 workspace 에 샘플을 넣으므로 기본 chain 에서 인증한다)
      */
     @Bean
     @Order(0)
     fun devTokenSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
-            .securityMatcher("/dev/**")
+            .securityMatcher("/dev/token")
             .cors { }
             .csrf { it.disable() }
             .authorizeHttpRequests { it.anyRequest().permitAll() }

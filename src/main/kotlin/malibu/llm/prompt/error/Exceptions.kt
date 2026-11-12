@@ -17,6 +17,29 @@ open class ConflictException(
     cause: Throwable? = null,
 ) : RuntimeException(message, cause)
 
+/** 403. code 는 응답 body 의 code 로 내려간다. */
+open class ForbiddenException(
+    val code: String,
+    message: String,
+    cause: Throwable? = null,
+) : RuntimeException(message, cause)
+
+/**
+ * 권한 판정 결과 NOT_MEMBER. 리소스 존재 여부를 노출하지 않도록 일반적인 404 메시지만 내려간다.
+ */
+class AuthzNotFoundException : NotFoundException(
+    message = "리소스를 찾을 수 없습니다.",
+)
+
+class UserDisabledException : ForbiddenException(
+    code = "USER_DISABLED",
+    message = "비활성화된 사용자입니다.",
+)
+
+class EmailAlreadyRegisteredException(email: String) : ConflictException(
+    message = "이미 등록된 이메일입니다. email: $email",
+)
+
 class WorkspaceNotFoundException(workspaceId: UUID) : NotFoundException(
     message = "워크스페이스를 찾을 수 없습니다. workspaceId: $workspaceId",
 )

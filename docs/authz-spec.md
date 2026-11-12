@@ -397,7 +397,7 @@ v2: 개발 단계이므로 수행하지 않는다. `001_init.sql` 을 직접 수
 - **workspace 생성자**: workspace를 만든 사용자는 같은 트랜잭션에서 그 workspace의 WORKSPACE_ADMIN으로 등록된다(ORG_ADMIN/OWNER는 함의로 이미 ADMIN이지만, 명시적 멤버십도 남긴다).
 - **org 생성자**: org를 만든 사용자(또는 지정된 `ownerUserId`)는 같은 트랜잭션에서 ORG_OWNER가 된다.
 - **사용자 생성(v2)**: 사용자를 만들 때 같은 트랜잭션에서 개인 org(ORG_OWNER) + 기본 workspace(WORKSPACE_ADMIN)를 만든다.
-- **최초 PLATFORM_ADMIN(v2)**: `users` 가 비어 있을 때 생성되는 첫 사용자에게 PLATFORM_ADMIN 을 부여한다. 동시 요청으로 둘이 되지 않도록 잠금(advisory lock) 안에서 판정한다.
+- **최초 PLATFORM_ADMIN(v2)**: `users` 가 비어 있을 때 생성되는 첫 사용자에게 PLATFORM_ADMIN 을 부여한다. 동시 요청으로 둘이 되지 않도록 `roles` 의 PLATFORM_ADMIN 행을 `SELECT ... FOR UPDATE` 로 잠근 뒤 판정한다(PostgreSQL / H2 공통). 사용자 생성은 모두 이 잠금을 거친다.
 
 ---
 
@@ -446,7 +446,10 @@ DB 제약 (Liquibase changelog 를 적용한 DB 에서 실행):
   3. 미등록 사용자는 **403 `USER_NOT_REGISTERED`**, `DISABLED` 사용자는 403.
   4. 예외: `users` 가 비어 있으면 첫 로그인 사용자를 생성하고 PLATFORM_ADMIN 을 부여한다(§7).
 - **로컬 (local 프로파일)**: `POST /dev/token {email, name}` 이 사용자를 find-or-create(JIT)하고 `sub = users.id` 로 토큰을 발급한다. 이후 요청은 `sub` 를 그대로 userId 로 쓴다.
-- JWT → userId 변환 결과는 짧은 TTL 로 캐시한다.
+- JWT → userId 변환 결과는 `(iss, sub)` 키로 30초 캐시한다(사용자 비활성화는 최대 30초 늦게 반영).
+- 판정 결과는 요청 범위로 메모한다. 같은 요청 안에서 멤버십을 바꾼 뒤 다시 판정하려면 `PermissionResolver.evictRequestCache()` 를 호출한다.
+- 인증 실패 응답: 토큰 없음/무효/없는 사용자 401, 미등록 403 `USER_NOT_REGISTERED`, 비활성 403 `USER_DISABLED`. 판정 DENIED 는 403 `FORBIDDEN`, NOT_MEMBER 는 404. 에러 body 에 `code` 필드가 있다.
+- `/dev/init`(local)은 인증이 필요하다. 카탈로그를 만들고 호출한 사용자의 기본 workspace 에 샘플 프롬프트를 넣는다.
 - 웹 콘솔은 로그인 콜백에서 `GET /me` 를 호출해 403 이면 로그인을 거부한다.
 
 ---

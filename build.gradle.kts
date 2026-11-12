@@ -56,6 +56,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
+    implementation("com.github.ben-manes.caffeine:caffeine")
 
     // querydsl (OpenFeign fork). Q 클래스는 KSP 로 build/generated/ksp 에 생성된다.
     implementation("io.github.openfeign.querydsl:querydsl-jpa:$querydslVersion")
@@ -107,6 +108,7 @@ implementation("org.jetbrains.kotlin:kotlin-reflect")
     testImplementation("org.testcontainers:testcontainers-postgresql")
 
     testImplementation("io.mockk:mockk:1.14.6")
+    testImplementation("org.springframework.security:spring-security-test")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("org.postgresql:postgresql")
