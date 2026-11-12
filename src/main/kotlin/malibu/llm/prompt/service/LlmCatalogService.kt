@@ -234,22 +234,22 @@ class LlmCatalogService(
         return llmApiKeyRepository.searchApiKeys(searchSpec, pageable)
     }
 
+    /** IDOR 방어: 경로의 workspace 에 속한 키만. 다른 workspace 의 키는 404. (authz-spec §5) */
     @Transactional(readOnly = true)
-    fun getApiKey(apiKeyId: UUID): LlmApiKey {
-        return llmApiKeyRepository.findById(apiKeyId)
-            .orElseThrow { ApiKeyNotFoundException(apiKeyId) }
-    }
+    fun getApiKey(workspaceId: UUID, apiKeyId: UUID): LlmApiKey =
+        llmApiKeyRepository.findByIdAndWorkspaceId(apiKeyId, workspaceId)
+            ?: throw ApiKeyNotFoundException(apiKeyId)
 
     @Transactional
     fun updateApiKey(
+        workspaceId: UUID,
         apiKeyId: UUID,
         vendorId: UUID?,
         name: String?,
         value: String?,
         description: String?,
     ): LlmApiKey {
-        val apiKey = llmApiKeyRepository.findById(apiKeyId)
-            .orElseThrow { ApiKeyNotFoundException(apiKeyId) }
+        val apiKey = getApiKey(workspaceId, apiKeyId)
         if (vendorId != null) {
             val vendor = llmVendorRepository.findById(vendorId)
                 .orElseThrow { VendorNotFoundException(vendorId) }
@@ -269,9 +269,7 @@ class LlmCatalogService(
     }
 
     @Transactional
-    fun deleteApiKey(apiKeyId: UUID) {
-        val apiKey = llmApiKeyRepository.findById(apiKeyId)
-            .orElseThrow { ApiKeyNotFoundException(apiKeyId) }
-        llmApiKeyRepository.delete(apiKey)
+    fun deleteApiKey(workspaceId: UUID, apiKeyId: UUID) {
+        llmApiKeyRepository.delete(getApiKey(workspaceId, apiKeyId))
     }
 }

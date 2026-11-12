@@ -26,8 +26,7 @@ import java.util.UUID
 
 /**
  * 목록/조회는 실행하려면 키를 골라야 하므로 llm:execute 로 연다. 값은 last5 만 내려간다.
- *
- * TODO(authz 5단계): apiKeyId 를 workspaceId 조건으로 조회하도록 서비스를 바꾼다(IDOR).
+ * apiKeyId 는 경로의 workspaceId 조건으로만 조회한다. (authz-spec §5)
  */
 @RestController
 @RequestMapping("/workspaces/{workspaceId}/llm-api-keys")
@@ -71,7 +70,7 @@ class LlmApiKeysController(
         @PathVariable workspaceId: UUID,
         @PathVariable apiKeyId: UUID,
     ): LlmApiKeyResponse {
-        return llmCatalogService.getApiKey(apiKeyId).toResponse()
+        return llmCatalogService.getApiKey(workspaceId, apiKeyId).toResponse()
     }
 
     @PatchMapping("/{apiKeyId}")
@@ -82,6 +81,7 @@ class LlmApiKeysController(
         @RequestBody request: LlmApiKeyUpdateRequest,
     ): LlmApiKeyResponse {
         return llmCatalogService.updateApiKey(
+            workspaceId = workspaceId,
             apiKeyId = apiKeyId,
             vendorId = request.vendorId,
             name = request.name,
@@ -97,7 +97,7 @@ class LlmApiKeysController(
         @PathVariable workspaceId: UUID,
         @PathVariable apiKeyId: UUID,
     ) {
-        llmCatalogService.deleteApiKey(apiKeyId)
+        llmCatalogService.deleteApiKey(workspaceId, apiKeyId)
     }
 }
 

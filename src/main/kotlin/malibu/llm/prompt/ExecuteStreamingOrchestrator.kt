@@ -46,22 +46,15 @@ class ExecuteStreamingOrchestratorImpl(
             .orElseThrow { WorkspaceNotFoundException(workspaceId) }
         val model = llmModelRepository.findById(request.llmModelId)
             .orElseThrow { ModelNotFoundException(request.llmModelId) }
-        val apiKey = llmApiKeyRepository.findById(request.llmApiKeyId)
-            .orElseThrow { ApiKeyNotFoundException(request.llmApiKeyId) }
+        // IDOR 방어: 키와 ref 는 경로의 workspace 에 속한 것만 찾는다. 다른 workspace 의 ID 는 404. (authz-spec §5)
+        val apiKey = llmApiKeyRepository.findByIdAndWorkspaceId(request.llmApiKeyId, workspaceId)
+            ?: throw ApiKeyNotFoundException(request.llmApiKeyId)
 
         if (requireNotNull(model.llmVendor.id) != requireNotNull(apiKey.llmVendor.id)) {
             throw VendorMismatchException()
         }
-        if (requireNotNull(apiKey.workspace.id) != workspaceId) {
-            throw WorkspaceMismatchException()
-        }
 
-        val resolvedRef = resolveRef(request)
-        if (resolvedRef != null &&
-            requireNotNull(resolvedRef.prompt.workspace.id) != workspaceId
-        ) {
-            throw WorkspaceMismatchException()
-        }
+        val resolvedRef = resolveRef(workspaceId, request)
 
         val resolvedInstructions = resolveInstructions(request, resolvedRef)
         val messages = buildMessages(resolvedRef, request.inputItems)
@@ -285,10 +278,10 @@ class ExecuteStreamingOrchestratorImpl(
             }
     }
 
-    private fun resolveRef(request: ExecuteRequest) =
+    private fun resolveRef(workspaceId: UUID, request: ExecuteRequest) =
         if (request.promptRefId != null) {
-            promptRefRepository.findById(request.promptRefId)
-                .orElseThrow { PromptRefNotFoundException(request.promptRefId) }
+            promptRefRepository.findByIdAndPromptWorkspaceId(request.promptRefId, workspaceId)
+                ?: throw PromptRefNotFoundException(request.promptRefId)
         } else {
             null
         }

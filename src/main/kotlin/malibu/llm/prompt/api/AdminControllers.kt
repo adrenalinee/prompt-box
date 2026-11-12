@@ -160,7 +160,7 @@ class AdminContentController(
 
     @GetMapping("/prompts/{promptId}")
     fun getPrompt(@PathVariable promptId: UUID): PromptResponse =
-        promptService.getPrompt(promptId).toResponse()
+        promptService.getPromptForPlatform(promptId).toResponse()
 
     @GetMapping("/prompts/{promptId}/refs")
     fun listPromptRefs(
@@ -169,7 +169,7 @@ class AdminContentController(
         @RequestParam(required = false) name: String?,
         @PageableDefault(size = 20, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable,
     ): PageResponse<PromptRefResponse> =
-        promptService.listRefs(PromptRefSearchSpec(promptId = promptId, type = type, name = name), pageable)
+        promptService.listRefsForPlatform(PromptRefSearchSpec(promptId = promptId, type = type, name = name), pageable)
             .toResponse { it.toResponse() }
 
     @GetMapping("/llm-calls")
@@ -181,7 +181,7 @@ class AdminContentController(
 
     @GetMapping("/llm-calls/{callLogId}")
     fun getLlmCall(@PathVariable callLogId: UUID): LlmCallLogDetailResponse =
-        llmCallLogService.getLog(callLogId).toResponse()
+        llmCallLogService.getLogForPlatform(callLogId).toResponse()
 
     /** 값은 last5 만 내려간다. */
     @GetMapping("/llm-api-keys")

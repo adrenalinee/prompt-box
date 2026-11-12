@@ -45,7 +45,7 @@ import java.util.*
 /**
  * LLM 호출(SSE 실행)과 호출 로그.
  *
- * TODO(authz 5단계): callLogId 를 workspaceId 조건으로 조회하도록 서비스를 바꾼다(IDOR).
+ * callLogId 는 경로의 workspaceId 조건으로만 조회한다. (authz-spec §5)
  */
 @RestController
 @RequestMapping("/workspaces/{workspaceId}/llm-calls")
@@ -76,7 +76,7 @@ class LlmCallsController(
         @PathVariable workspaceId: UUID,
         @PathVariable callLogId: UUID,
     ): LlmCallLogDetailResponse =
-        llmCallLogService.getLog(callLogId).toResponse()
+        llmCallLogService.getLog(workspaceId, callLogId).toResponse()
 
     @PostMapping(produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.LLM_EXECUTE}')")
@@ -215,6 +215,7 @@ class LlmCallsController(
         @RequestBody(required = false) request: LlmCallCancelRequest?,
     ) {
         llmCallCancelService.cancel(
+            workspaceId = workspaceId,
             callLogId = callLogId,
             reason = request?.reason ?: "cancelled by client",
         )

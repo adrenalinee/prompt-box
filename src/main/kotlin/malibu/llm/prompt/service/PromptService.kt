@@ -14,7 +14,6 @@ import malibu.llm.prompt.data.repo.PromptRepository
 import malibu.llm.prompt.data.repo.WorkspaceRepository
 import malibu.llm.prompt.error.AdditionalInputLimitExceededException
 import malibu.llm.prompt.error.AdditionalInputNotFoundException
-import malibu.llm.prompt.error.AdditionalInputNotInRefException
 import malibu.llm.prompt.error.CannotDeleteDefaultBranchException
 import malibu.llm.prompt.error.CannotDeleteLatestTagException
 import malibu.llm.prompt.error.DefaultBranchMustBeBranchException
@@ -24,7 +23,6 @@ import malibu.llm.prompt.error.PromptNotFoundException
 import malibu.llm.prompt.error.PromptRefLimitExceededException
 import malibu.llm.prompt.error.PromptRefNotFoundException
 import malibu.llm.prompt.error.RefHasCallLogsException
-import malibu.llm.prompt.error.RefNotInPromptException
 import malibu.llm.prompt.error.TagImmutableException
 import malibu.llm.prompt.error.TagRequiresFromRefException
 import malibu.llm.prompt.error.WorkspaceNotFoundException
@@ -34,6 +32,12 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
+/**
+ * IDOR 방어(authz-spec §5):
+ * - prompt 는 workspaceId 조건으로만 조회한다.
+ * - ref / additional input 은 루트(prompt → ref)를 거쳐서만 조회한다.
+ * - 다른 workspace / 다른 prompt / 다른 ref 의 ID 는 모두 404 다.
+ */
 @Service
 class PromptService(
     private val workspaceRepository: WorkspaceRepository,
@@ -43,34 +47,47 @@ class PromptService(
     private val llmCallLogRepository: LlmCallLogRepository,
 ) {
 
+    // ---- 플랫폼 전체 조회 (/admin/..., 읽기 전용) ----
+
+    /** workspaceId 가 없으면 모든 workspace. 플랫폼 조회와 workspace 경로 목록이 함께 쓴다. */
     @Transactional(readOnly = true)
     fun listPrompts(
         searchSpec: PromptSearchSpec,
         pageable: Pageable,
     ): Page<Prompt> {
         searchSpec.workspaceId?.let { workspaceId ->
-            workspaceRepository.findById(workspaceId)
-                .orElseThrow { WorkspaceNotFoundException(workspaceId) }
+            if (!workspaceRepository.existsById(workspaceId)) {
+                throw WorkspaceNotFoundException(workspaceId)
+            }
         }
         return promptRepository.searchPrompts(searchSpec, pageable)
     }
 
     @Transactional(readOnly = true)
-    fun getPrompt(promptId: UUID): Prompt {
-        return promptRepository.findById(promptId)
-            .orElseThrow { PromptNotFoundException(promptId) }
+    fun getPromptForPlatform(promptId: UUID): Prompt =
+        promptRepository.findById(promptId).orElseThrow { PromptNotFoundException(promptId) }
+
+    @Transactional(readOnly = true)
+    fun listRefsForPlatform(searchSpec: PromptRefSearchSpec, pageable: Pageable): Page<PromptRef> {
+        searchSpec.promptId?.let { getPromptForPlatform(it) }
+        return promptRefRepository.searchRefs(searchSpec, pageable)
     }
+
+    // ---- prompt ----
+
+    @Transactional(readOnly = true)
+    fun getPrompt(workspaceId: UUID, promptId: UUID): Prompt = requirePrompt(workspaceId, promptId)
 
     @Transactional
     fun updatePrompt(
+        workspaceId: UUID,
         promptId: UUID,
         name: String?,
         description: String?,
         defaultBranchRefId: Long?,
         latestTagRefId: Long?,
     ): Prompt {
-        val prompt = promptRepository.findById(promptId)
-            .orElseThrow { PromptNotFoundException(promptId) }
+        val prompt = requirePrompt(workspaceId, promptId)
         if (!name.isNullOrBlank()) {
             prompt.name = name
         }
@@ -78,22 +95,14 @@ class PromptService(
             prompt.description = description
         }
         if (defaultBranchRefId != null) {
-            val ref = promptRefRepository.findById(defaultBranchRefId)
-                .orElseThrow { PromptRefNotFoundException(defaultBranchRefId) }
-            if (requireNotNull(ref.prompt.id) != promptId) {
-                throw RefNotInPromptException()
-            }
+            val ref = requireRefOf(prompt, defaultBranchRefId)
             if (ref.type != PromptRefType.BRANCH) {
                 throw DefaultBranchMustBeBranchException()
             }
             prompt.defaultBranch = ref
         }
         if (latestTagRefId != null) {
-            val ref = promptRefRepository.findById(latestTagRefId)
-                .orElseThrow { PromptRefNotFoundException(latestTagRefId) }
-            if (requireNotNull(ref.prompt.id) != promptId) {
-                throw RefNotInPromptException()
-            }
+            val ref = requireRefOf(prompt, latestTagRefId)
             if (ref.type != PromptRefType.TAG) {
                 throw LatestTagMustBeTagException()
             }
@@ -103,9 +112,8 @@ class PromptService(
     }
 
     @Transactional
-    fun deletePrompt(promptId: UUID) {
-        val prompt = promptRepository.findById(promptId)
-            .orElseThrow { PromptNotFoundException(promptId) }
+    fun deletePrompt(workspaceId: UUID, promptId: UUID) {
+        val prompt = requirePrompt(workspaceId, promptId)
         val refs = promptRefRepository.findByPromptId(promptId)
 
         val hasRefLogs = refs.any { ref ->
@@ -174,37 +182,28 @@ class PromptService(
         return promptRepository.save(prompt)
     }
 
+    // ---- ref ----
+
     @Transactional(readOnly = true)
-    fun getRef(promptId: UUID, refId: Long): PromptRef {
-        val ref = promptRefRepository.findById(refId)
-            .orElseThrow { PromptRefNotFoundException(refId) }
-        if (requireNotNull(ref.prompt.id) != promptId) {
-            throw RefNotInPromptException()
-        }
-        return ref
-    }
+    fun getRef(workspaceId: UUID, promptId: UUID, refId: Long): PromptRef =
+        requireRef(workspaceId, promptId, refId)
 
     @Transactional(readOnly = true)
     fun listRefs(
-        searchSpec: PromptRefSearchSpec,
+        workspaceId: UUID,
+        promptId: UUID,
+        type: PromptRefType?,
+        name: String?,
         pageable: Pageable,
     ): Page<PromptRef> {
-        searchSpec.promptId?.let { promptId ->
-            promptRepository.findById(promptId)
-                .orElseThrow { PromptNotFoundException(promptId) }
-        }
-        return promptRefRepository.searchRefs(searchSpec, pageable)
+        requirePrompt(workspaceId, promptId)
+        return promptRefRepository.searchRefs(PromptRefSearchSpec(promptId = promptId, type = type, name = name), pageable)
     }
 
     @Transactional
-    fun deleteRef(promptId: UUID, refId: Long) {
-        val ref = promptRefRepository.findById(refId)
-            .orElseThrow { PromptRefNotFoundException(refId) }
-        if (requireNotNull(ref.prompt.id) != promptId) {
-            throw RefNotInPromptException()
-        }
-        val prompt = promptRepository.findById(promptId)
-            .orElseThrow { PromptNotFoundException(promptId) }
+    fun deleteRef(workspaceId: UUID, promptId: UUID, refId: Long) {
+        val prompt = requirePrompt(workspaceId, promptId)
+        val ref = requireRefOf(prompt, refId)
         if (prompt.defaultBranch?.id == ref.id) {
             throw CannotDeleteDefaultBranchException()
         }
@@ -221,17 +220,14 @@ class PromptService(
 
     @Transactional
     fun updateRef(
+        workspaceId: UUID,
         promptId: UUID,
         refId: Long,
         name: String?,
         description: String?,
         instructions: String?,
     ): PromptRef {
-        val ref = promptRefRepository.findById(refId)
-            .orElseThrow { PromptRefNotFoundException(refId) }
-        if (requireNotNull(ref.prompt.id) != promptId) {
-            throw RefNotInPromptException()
-        }
+        val ref = requireRef(workspaceId, promptId, refId)
         if (ref.type == PromptRefType.TAG) {
             throw TagImmutableException()
         }
@@ -249,26 +245,19 @@ class PromptService(
 
     @Transactional
     fun createRef(
+        workspaceId: UUID,
         promptId: UUID,
         name: String,
         type: PromptRefType,
         fromRefId: Long?,
         description: String?,
     ): PromptRef {
-        val prompt = promptRepository.findById(promptId)
-            .orElseThrow { PromptNotFoundException(promptId) }
+        val prompt = requirePrompt(workspaceId, promptId)
         val refCount = promptRefRepository.countByPromptId(promptId)
         if (refCount >= 100) {
             throw PromptRefLimitExceededException()
         }
-        val sourceRef = fromRefId?.let { refId ->
-            val ref = promptRefRepository.findById(refId)
-                .orElseThrow { PromptRefNotFoundException(refId) }
-            if (requireNotNull(ref.prompt.id) != requireNotNull(prompt.id)) {
-                throw RefNotInPromptException()
-            }
-            ref
-        }
+        val sourceRef = fromRefId?.let { requireRefOf(prompt, it) }
         if (sourceRef == null && type == PromptRefType.TAG) {
             throw TagRequiresFromRefException()
         }
@@ -303,19 +292,18 @@ class PromptService(
         return created
     }
 
+    // ---- additional input ----
+
     @Transactional
     fun addAdditionalInput(
+        workspaceId: UUID,
         promptId: UUID,
         refId: Long,
         position: Int?,
         role: InputRole,
         message: String,
     ): AdditionalInputItem {
-        val ref = promptRefRepository.findById(refId)
-            .orElseThrow { PromptRefNotFoundException(refId) }
-        if (requireNotNull(ref.prompt.id) != promptId) {
-            throw RefNotInPromptException()
-        }
+        val ref = requireRef(workspaceId, promptId, refId)
         val count = additionalInputItemRepository.countByPromptRefId(refId)
         if (count >= 100) {
             throw AdditionalInputLimitExceededException()
@@ -335,20 +323,18 @@ class PromptService(
 
     @Transactional(readOnly = true)
     fun listAdditionalInputs(
+        workspaceId: UUID,
         promptId: UUID,
         refId: Long,
         pageable: Pageable,
     ): Page<AdditionalInputItem> {
-        val ref = promptRefRepository.findById(refId)
-            .orElseThrow { PromptRefNotFoundException(refId) }
-        if (requireNotNull(ref.prompt.id) != promptId) {
-            throw RefNotInPromptException()
-        }
+        requireRef(workspaceId, promptId, refId)
         return additionalInputItemRepository.findByPromptRefId(refId, pageable)
     }
 
     @Transactional
     fun updateAdditionalInput(
+        workspaceId: UUID,
         promptId: UUID,
         refId: Long,
         additionalInputItemId: Long,
@@ -356,16 +342,8 @@ class PromptService(
         role: InputRole?,
         message: String?,
     ): AdditionalInputItem {
-        val ref = promptRefRepository.findById(refId)
-            .orElseThrow { PromptRefNotFoundException(refId) }
-        if (requireNotNull(ref.prompt.id) != promptId) {
-            throw RefNotInPromptException()
-        }
-        val item = additionalInputItemRepository.findById(additionalInputItemId)
-            .orElseThrow { AdditionalInputNotFoundException(additionalInputItemId) }
-        if (requireNotNull(item.promptRef.id) != refId) {
-            throw AdditionalInputNotInRefException()
-        }
+        requireRef(workspaceId, promptId, refId)
+        val item = requireAdditionalInput(refId, additionalInputItemId)
         if (position != null) {
             item.position = position
         }
@@ -388,19 +366,25 @@ class PromptService(
     }
 
     @Transactional
-    fun deleteAdditionalInput(promptId: UUID, refId: Long, additionalInputItemId: Long) {
-        val ref = promptRefRepository.findById(refId)
-            .orElseThrow { PromptRefNotFoundException(refId) }
-        if (requireNotNull(ref.prompt.id) != promptId) {
-            throw RefNotInPromptException()
-        }
-        val item = additionalInputItemRepository.findById(additionalInputItemId)
-            .orElseThrow { AdditionalInputNotFoundException(additionalInputItemId) }
-        if (requireNotNull(item.promptRef.id) != refId) {
-            throw AdditionalInputNotInRefException()
-        }
-        additionalInputItemRepository.delete(item)
+    fun deleteAdditionalInput(workspaceId: UUID, promptId: UUID, refId: Long, additionalInputItemId: Long) {
+        requireRef(workspaceId, promptId, refId)
+        additionalInputItemRepository.delete(requireAdditionalInput(refId, additionalInputItemId))
     }
+
+    // ---- 조회 헬퍼 (IDOR) ----
+
+    private fun requirePrompt(workspaceId: UUID, promptId: UUID): Prompt =
+        promptRepository.findByIdAndWorkspaceId(promptId, workspaceId) ?: throw PromptNotFoundException(promptId)
+
+    private fun requireRefOf(prompt: Prompt, refId: Long): PromptRef =
+        promptRefRepository.findByIdAndPromptId(refId, requireNotNull(prompt.id)) ?: throw PromptRefNotFoundException(refId)
+
+    private fun requireRef(workspaceId: UUID, promptId: UUID, refId: Long): PromptRef =
+        requireRefOf(requirePrompt(workspaceId, promptId), refId)
+
+    private fun requireAdditionalInput(refId: Long, additionalInputItemId: Long): AdditionalInputItem =
+        additionalInputItemRepository.findByIdAndPromptRefId(additionalInputItemId, refId)
+            ?: throw AdditionalInputNotFoundException(additionalInputItemId)
 
     private fun resequenceAdditionalInputs(items: List<AdditionalInputItem>) {
         items.forEachIndexed { index, input ->

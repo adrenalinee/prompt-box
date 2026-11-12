@@ -10,7 +10,6 @@ import malibu.llm.prompt.data.dto.AdditionalInputUpdateRequest
 import malibu.llm.prompt.data.dto.PromptCreateRequest
 import malibu.llm.prompt.data.dto.PromptRefCreateRequest
 import malibu.llm.prompt.data.dto.PromptRefResponse
-import malibu.llm.prompt.data.dto.PromptRefSearchSpec
 import malibu.llm.prompt.data.dto.PromptRefUpdateRequest
 import malibu.llm.prompt.data.dto.PromptResponse
 import malibu.llm.prompt.data.dto.PromptSearchSpec
@@ -39,7 +38,7 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 /**
- * TODO(authz 5단계): promptId / refId 를 workspaceId 조건으로 조회하도록 서비스를 바꾼다(IDOR).
+ * prompt / ref / additional input 은 경로의 workspaceId 조건으로만 조회한다. 다른 workspace 의 ID 는 404. (authz-spec §5)
  */
 @RestController
 @RequestMapping("/workspaces/{workspaceId}/prompts")
@@ -82,7 +81,7 @@ class PromptsController(
         @PathVariable workspaceId: UUID,
         @PathVariable promptId: UUID,
     ): PromptResponse {
-        return promptService.getPrompt(promptId).toResponse()
+        return promptService.getPrompt(workspaceId, promptId).toResponse()
     }
 
     /** latestTag 를 바꾸는 것은 publish 다. */
@@ -97,6 +96,7 @@ class PromptsController(
         @RequestBody request: PromptUpdateRequest,
     ): PromptResponse {
         return promptService.updatePrompt(
+            workspaceId,
             promptId,
             request.name,
             request.description,
@@ -112,7 +112,7 @@ class PromptsController(
         @PathVariable workspaceId: UUID,
         @PathVariable promptId: UUID,
     ) {
-        promptService.deletePrompt(promptId)
+        promptService.deletePrompt(workspaceId, promptId)
     }
 
     /** BRANCH 는 prompt:write, TAG 는 prompt_ref:publish. */
@@ -128,6 +128,7 @@ class PromptsController(
         @RequestBody request: PromptRefCreateRequest,
     ): PromptRefResponse {
         return promptService.createRef(
+            workspaceId = workspaceId,
             promptId = promptId,
             name = request.name,
             type = request.type,
@@ -145,11 +146,7 @@ class PromptsController(
         @RequestParam(required = false) name: String?,
         @PageableDefault(size = 20, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable,
     ): PageResponse<PromptRefResponse> =
-        promptService.listRefs(PromptRefSearchSpec(
-            promptId = promptId,
-            type = type,
-            name = name,
-        ), pageable)
+        promptService.listRefs(workspaceId, promptId, type, name, pageable)
             .toResponse { it.toResponse() }
 
     @GetMapping("/{promptId}/refs/{refId}")
@@ -159,7 +156,7 @@ class PromptsController(
         @PathVariable promptId: UUID,
         @PathVariable refId: Long,
     ): PromptRefResponse {
-        return promptService.getRef(promptId, refId).toResponse()
+        return promptService.getRef(workspaceId, promptId, refId).toResponse()
     }
 
     @PatchMapping("/{promptId}/refs/{refId}")
@@ -171,6 +168,7 @@ class PromptsController(
         @RequestBody request: PromptRefUpdateRequest,
     ): PromptRefResponse {
         return promptService.updateRef(
+            workspaceId = workspaceId,
             promptId = promptId,
             refId = refId,
             name = request.name,
@@ -188,11 +186,11 @@ class PromptsController(
         @PathVariable promptId: UUID,
         @PathVariable refId: Long,
     ) {
-        val ref = promptService.getRef(promptId, refId)
+        val ref = promptService.getRef(workspaceId, promptId, refId)
         if (ref.type == PromptRefType.TAG && !wsAuthz.has(workspaceId, Permissions.PROMPT_REF_PUBLISH)) {
             throw AccessDeniedException("TAG 삭제에는 ${Permissions.PROMPT_REF_PUBLISH} 권한이 필요합니다.")
         }
-        promptService.deleteRef(promptId, refId)
+        promptService.deleteRef(workspaceId, promptId, refId)
     }
 
     @PostMapping("/{promptId}/refs/{refId}/additional-input-items")
@@ -205,6 +203,7 @@ class PromptsController(
         @RequestBody request: AdditionalInputCreateRequest,
     ): AdditionalInputItemResponse {
         return promptService.addAdditionalInput(
+            workspaceId = workspaceId,
             promptId = promptId,
             refId = refId,
             position = request.position,
@@ -221,7 +220,7 @@ class PromptsController(
         @PathVariable refId: Long,
         @PageableDefault(size = 20, sort = ["position"], direction = Sort.Direction.DESC) pageable: Pageable,
     ): PageResponse<AdditionalInputItemResponse> =
-        promptService.listAdditionalInputs(promptId, refId, pageable).toResponse { it.toResponse() }
+        promptService.listAdditionalInputs(workspaceId, promptId, refId, pageable).toResponse { it.toResponse() }
 
     @PatchMapping("/{promptId}/refs/{refId}/additional-input-items/{additionalInputItemId}")
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.PROMPT_WRITE}')")
@@ -233,6 +232,7 @@ class PromptsController(
         @RequestBody request: AdditionalInputUpdateRequest,
     ): AdditionalInputItemResponse {
         return promptService.updateAdditionalInput(
+            workspaceId = workspaceId,
             promptId = promptId,
             refId = refId,
             additionalInputItemId = additionalInputItemId,
@@ -251,7 +251,7 @@ class PromptsController(
         @PathVariable refId: Long,
         @PathVariable additionalInputItemId: Long,
     ) {
-        promptService.deleteAdditionalInput(promptId, refId, additionalInputItemId)
+        promptService.deleteAdditionalInput(workspaceId, promptId, refId, additionalInputItemId)
     }
 }
 

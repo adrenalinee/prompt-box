@@ -13,8 +13,9 @@ class LlmCallCancelService(
     private val llmCallLogTxService: LlmCallLogTxService,
     private val llmStreamCancelRegistry: LlmStreamCancelRegistry,
 ) {
-    fun cancel(callLogId: UUID, reason: String): Unit {
-        if (!llmCallLogRepository.existsById(callLogId)) {
+    /** 다른 workspace 의 호출은 취소할 수 없다(404). (authz-spec §5) */
+    fun cancel(workspaceId: UUID, callLogId: UUID, reason: String): Unit {
+        if (!llmCallLogRepository.existsByIdAndWorkspaceId(callLogId, workspaceId)) {
             throw CallLogNotFoundException(callLogId)
         }
         val cancelled = llmStreamCancelRegistry.cancel(callLogId, reason)

@@ -80,10 +80,6 @@ class VendorMismatchException : BadRequestException(
     message = "모델 벤더와 API 키 벤더가 일치하지 않습니다.",
 )
 
-class WorkspaceMismatchException : BadRequestException(
-    message = "워크스페이스가 일치하지 않습니다.",
-)
-
 class InstructionsRequiredException : BadRequestException(
     message = "instructions 값이 필요합니다.",
 )
@@ -102,10 +98,6 @@ class GoogleSystemOrDeveloperInputNotSupportedException : BadRequestException(
 
 class XaiInstructionsOnlyNotSupportedException : BadRequestException(
     message = "xai 벤더는 instructions 단독 요청을 지원하지 않습니다. USER/ASSISTANT message input이 필요합니다.",
-)
-
-class RefNotInPromptException : BadRequestException(
-    message = "ref가 프롬프트에 속하지 않습니다.",
 )
 
 class DefaultBranchMustBeBranchException : BadRequestException(
@@ -130,10 +122,6 @@ class TagRequiresFromRefException : BadRequestException(
 
 class AdditionalInputLimitExceededException : BadRequestException(
     message = "additional input 개수 제한을 초과했습니다.",
-)
-
-class AdditionalInputNotInRefException : BadRequestException(
-    message = "additional input이 ref에 속하지 않습니다.",
 )
 
 class ActiveStreamNotFoundException(callLogId: UUID) : BadRequestException(

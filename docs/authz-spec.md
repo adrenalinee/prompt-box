@@ -381,6 +381,13 @@ select distinct p.code
 - 깊은 자식(prompt_ref, additional_input_item, input_item, output_item, output_item_part)은 루트(prompt, llm_call_log)를 workspace 조건으로 먼저 조회하고, 루트를 통해서만 접근한다.
 - 다른 workspace 의 리소스 ID 는 **404** 로 응답한다(기존 `WorkspaceMismatchException`/`RefNotInPromptException` 400 응답 포함).
 - §0-5에서 찾은 `findById` 사용처를 모두 교체한다.
+- 5단계 구현:
+  - `findByIdAndWorkspaceId`: prompt, llm_api_key, llm_call_log (취소는 `existsByIdAndWorkspaceId`).
+  - `findByIdAndPromptId`(ref), `findByIdAndPromptRefId`(additional input): 루트를 먼저 찾은 뒤 그 아래에서만 조회한다. `updatePrompt` 의 defaultBranchRefId/latestTagRefId, `createRef` 의 fromRefId 도 같다.
+  - 실행(`POST …/llm-calls`)의 `llmApiKeyId` 는 `findByIdAndWorkspaceId`, `promptRefId` 는 `findByIdAndPromptWorkspaceId`.
+  - `WorkspaceMismatchException`, `RefNotInPromptException`, `AdditionalInputNotInRefException`(400)은 제거했다. 해당 경우는 모두 각 리소스의 404 다.
+  - `/admin/...` 플랫폼 조회만 ID 단독 조회(`…ForPlatform`)를 쓴다. `LlmCallLogTxService` 는 스트림 내부 처리라 제외(§0-5).
+  - 테스트: `AuthzIdorHttpTest` (수정 전 코드에서는 5개 모두 실패: 남의 prompt / API 키가 200 으로 조회됨).
 
 ---
 
@@ -408,7 +415,7 @@ v2: 개발 단계이므로 수행하지 않는다. `001_init.sql` 을 직접 수
 2. **스키마/시드 마이그레이션**: §2, §3. 엔티티, H2 로컬 시드, `ddl-auto` 프로파일 정리. §9의 DB 제약 테스트와 시드–상수 일치 테스트 통과.
 3. **인증/판정 컴포넌트**: JWT → userId 변환(§10), `/dev/token` 사용자 연동, `platformAuthz`, `orgAuthz`, `wsAuthz`, 권한 조회 리포지토리, 3상태 판정과 예외 매핑, `@EnableMethodSecurity`. 단위/통합 테스트 포함.
 4. **엔드포인트 적용**: §4.5 대로 경로 변경과 `@PreAuthorize` 부착, Spring Data REST 제거, `/me`·`my-permissions`·`/admin/...`·org/멤버 API 추가. 권한 어노테이션이 없는 엔드포인트가 남지 않았는지 검사하는 테스트 추가. (완료)
-5. **IDOR 교체**: §5.
+5. **IDOR 교체**: §5. (완료)
 6. **서비스 불변식**: §7.
 
 웹 콘솔(`prompt-box-console`)은 4단계 이후 경로 변경, `GET /me` 기반 로그인 검증, 권한 기반 버튼 노출, 404 처리를 맞춰 수정한다.

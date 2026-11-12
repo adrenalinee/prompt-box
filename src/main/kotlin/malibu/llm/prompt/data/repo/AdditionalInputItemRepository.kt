@@ -10,4 +10,5 @@ interface AdditionalInputItemRepository : JpaRepository<AdditionalInputItem, Lon
     fun findByPromptRefId(promptRefId: Long, pageable: Pageable): Page<AdditionalInputItem>
     fun countByPromptRefId(promptRefId: Long): Long
     fun deleteByPromptRefId(promptRefId: Long)
+    fun findByIdAndPromptRefId(id: Long, promptRefId: Long): AdditionalInputItem?
 }

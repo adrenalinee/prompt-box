@@ -33,10 +33,18 @@ class LlmCallLogService(
         return llmCallLogRepository.searchLogs(searchSpec, pageable)
     }
 
+    /** IDOR 방어: 경로의 workspace 에 속한 로그만. 자식(input/output)은 이 로그를 통해서만 조회한다. (authz-spec §5) */
     @Transactional(readOnly = true)
-    fun getLog(callLogId: UUID): LlmCallLogDetail {
-        val log = llmCallLogRepository.findById(callLogId)
-            .orElseThrow { CallLogNotFoundException(callLogId) }
+    fun getLog(workspaceId: UUID, callLogId: UUID): LlmCallLogDetail =
+        detailOf(llmCallLogRepository.findByIdAndWorkspaceId(callLogId, workspaceId) ?: throw CallLogNotFoundException(callLogId))
+
+    /** 플랫폼 전체 조회(/admin/llm-calls/{id}) 전용. */
+    @Transactional(readOnly = true)
+    fun getLogForPlatform(callLogId: UUID): LlmCallLogDetail =
+        detailOf(llmCallLogRepository.findById(callLogId).orElseThrow { CallLogNotFoundException(callLogId) })
+
+    private fun detailOf(log: LlmCallLog): LlmCallLogDetail {
+        val callLogId = requireNotNull(log.id)
         val inputs = inputItemRepository.findByLlmCallLogIdOrderByPositionAsc(callLogId)
         val outputs = outputItemRepository.findByLlmCallLogIdOrderByPositionAsc(callLogId)
         val outputItemIds = outputs.mapNotNull { it.id }

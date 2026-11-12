@@ -9,4 +9,8 @@ interface LlmCallLogRepository : JpaRepository<LlmCallLog, UUID>, LlmCallLogRepo
     fun countByLlmApiKeyId(llmApiKeyId: UUID): Long
     fun countByPromptRefId(promptRefId: Long): Long
     fun countByWorkspaceId(workspaceId: UUID): Long
+
+    /** IDOR 방어. (authz-spec §5) */
+    fun findByIdAndWorkspaceId(id: UUID, workspaceId: UUID): LlmCallLog?
+    fun existsByIdAndWorkspaceId(id: UUID, workspaceId: UUID): Boolean
 }
