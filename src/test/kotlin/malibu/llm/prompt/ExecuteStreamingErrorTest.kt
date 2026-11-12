@@ -8,6 +8,7 @@ import malibu.llm.prompt.data.repo.LlmCallLogRepository
 import malibu.llm.prompt.data.repo.LlmModelRepository
 import malibu.llm.prompt.data.repo.LlmVendorRepository
 import malibu.llm.prompt.data.repo.OutputItemRepository
+import malibu.llm.prompt.data.repo.OrganizationRepository
 import malibu.llm.prompt.data.repo.WorkspaceRepository
 import malibu.llm.prompt.error.UnsupportedVendorException
 import malibu.llm.streamclient.LlmStreamEvent
@@ -25,6 +26,7 @@ import java.util.concurrent.TimeoutException
 class ExecuteStreamingErrorTest(
     private val executeStreamingOrchestrator: ExecuteStreamingOrchestrator,
     private val workspaceRepository: WorkspaceRepository,
+    private val organizationRepository: OrganizationRepository,
     private val llmVendorRepository: LlmVendorRepository,
     private val llmModelRepository: LlmModelRepository,
     private val llmApiKeyRepository: LlmApiKeyRepository,
@@ -38,6 +40,7 @@ class ExecuteStreamingErrorTest(
     fun `llm streaming timeout - should persist timeout status`() {
         val fixture = setupStreamingFixture(
             workspaceRepository = workspaceRepository,
+            organizationRepository = organizationRepository,
             llmVendorRepository = llmVendorRepository,
             llmModelRepository = llmModelRepository,
             llmApiKeyRepository = llmApiKeyRepository,
@@ -73,6 +76,7 @@ class ExecuteStreamingErrorTest(
     fun `llm streaming error - should persist error status`() {
         val fixture = setupStreamingFixture(
             workspaceRepository = workspaceRepository,
+            organizationRepository = organizationRepository,
             llmVendorRepository = llmVendorRepository,
             llmModelRepository = llmModelRepository,
             llmApiKeyRepository = llmApiKeyRepository,
@@ -111,6 +115,7 @@ class ExecuteStreamingErrorTest(
     fun `llm streaming unsupported vendor - should persist error status and throw bad request`() {
         val fixture = setupStreamingFixture(
             workspaceRepository = workspaceRepository,
+            organizationRepository = organizationRepository,
             llmVendorRepository = llmVendorRepository,
             llmModelRepository = llmModelRepository,
             llmApiKeyRepository = llmApiKeyRepository,

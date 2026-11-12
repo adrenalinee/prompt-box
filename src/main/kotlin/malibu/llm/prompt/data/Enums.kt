@@ -61,3 +61,17 @@ enum class OutputItemPartType {
     REASONING_SUMMARY,
     UNKNOWN,
 }
+
+enum class UserStatus {
+    ACTIVE,
+    DISABLED,
+}
+
+enum class AuthProvider {
+    GOOGLE,
+}
+
+enum class OrganizationStatus {
+    ACTIVE,
+    SUSPENDED,
+}

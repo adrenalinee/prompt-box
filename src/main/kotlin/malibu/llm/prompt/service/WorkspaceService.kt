@@ -7,9 +7,11 @@ import malibu.llm.prompt.data.repo.DefaultLlmCallOptionsRepository
 import malibu.llm.prompt.data.repo.LlmApiKeyRepository
 import malibu.llm.prompt.data.repo.LlmCallLogRepository
 import malibu.llm.prompt.data.repo.LlmModelRepository
+import malibu.llm.prompt.data.repo.OrganizationRepository
 import malibu.llm.prompt.data.repo.PromptRepository
 import malibu.llm.prompt.data.repo.WorkspaceRepository
 import malibu.llm.prompt.error.ModelNotFoundException
+import malibu.llm.prompt.error.OrganizationNotFoundException
 import malibu.llm.prompt.error.WorkspaceHasDependenciesException
 import malibu.llm.prompt.error.WorkspaceNotFoundException
 import malibu.llm.streamclient.ReasoningEffortType
@@ -29,6 +31,7 @@ class WorkspaceService(
     private val promptRepository: PromptRepository,
     private val llmApiKeyRepository: LlmApiKeyRepository,
     private val llmCallLogRepository: LlmCallLogRepository,
+    private val organizationRepository: OrganizationRepository,
 ) {
 
     @Transactional(readOnly = true)
@@ -43,7 +46,9 @@ class WorkspaceService(
     }
 
     @Transactional
-    fun create(name: String, description: String?, defaultModelId: Long?): Workspace {
+    fun create(organizationId: UUID, name: String, description: String?, defaultModelId: Long?): Workspace {
+        val organization = organizationRepository.findById(organizationId)
+            .orElseThrow { OrganizationNotFoundException(organizationId) }
         val defaultModel = if (defaultModelId != null) {
             llmModelRepository.findById(defaultModelId)
                 .orElseThrow { ModelNotFoundException(defaultModelId) }
@@ -52,6 +57,7 @@ class WorkspaceService(
         }
         return workspaceRepository.save(
             Workspace(
+                organization = organization,
                 name = name,
                 description = description,
                 defaultModel = defaultModel,

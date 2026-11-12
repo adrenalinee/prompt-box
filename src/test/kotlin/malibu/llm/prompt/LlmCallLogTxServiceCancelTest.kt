@@ -7,6 +7,7 @@ import malibu.llm.prompt.data.repo.LlmApiKeyRepository
 import malibu.llm.prompt.data.repo.LlmCallLogRepository
 import malibu.llm.prompt.data.repo.LlmModelRepository
 import malibu.llm.prompt.data.repo.LlmVendorRepository
+import malibu.llm.prompt.data.repo.OrganizationRepository
 import malibu.llm.prompt.data.repo.WorkspaceRepository
 import malibu.llm.prompt.service.LlmCallLogTxService
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -19,6 +20,7 @@ import org.springframework.test.context.ContextConfiguration
 class LlmCallLogTxServiceCancelTest(
     private val llmCallLogTxService: LlmCallLogTxService,
     private val workspaceRepository: WorkspaceRepository,
+    private val organizationRepository: OrganizationRepository,
     private val llmVendorRepository: LlmVendorRepository,
     private val llmModelRepository: LlmModelRepository,
     private val llmApiKeyRepository: LlmApiKeyRepository,
@@ -30,6 +32,7 @@ class LlmCallLogTxServiceCancelTest(
     fun `updateCancelRequested should not override cancelled status`() {
         val fixture = setupStreamingFixture(
             workspaceRepository = workspaceRepository,
+            organizationRepository = organizationRepository,
             llmVendorRepository = llmVendorRepository,
             llmModelRepository = llmModelRepository,
             llmApiKeyRepository = llmApiKeyRepository,
@@ -60,6 +63,7 @@ class LlmCallLogTxServiceCancelTest(
     fun `updateCancelRequested should not override success status`() {
         val fixture = setupStreamingFixture(
             workspaceRepository = workspaceRepository,
+            organizationRepository = organizationRepository,
             llmVendorRepository = llmVendorRepository,
             llmModelRepository = llmModelRepository,
             llmApiKeyRepository = llmApiKeyRepository,

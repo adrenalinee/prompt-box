@@ -9,6 +9,7 @@ import malibu.llm.prompt.data.repo.LlmModelRepository
 import malibu.llm.prompt.data.repo.LlmVendorRepository
 import malibu.llm.prompt.data.repo.OutputItemRepository
 import malibu.llm.prompt.data.repo.OutputItemPartRepository
+import malibu.llm.prompt.data.repo.OrganizationRepository
 import malibu.llm.prompt.data.repo.WorkspaceRepository
 import malibu.llm.streamclient.LlmStreamEvent
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -23,6 +24,7 @@ import reactor.core.publisher.Flux
 class ExecuteStreamingSuccessTest(
     private val executeStreamingOrchestrator: ExecuteStreamingOrchestrator,
     private val workspaceRepository: WorkspaceRepository,
+    private val organizationRepository: OrganizationRepository,
     private val llmVendorRepository: LlmVendorRepository,
     private val llmModelRepository: LlmModelRepository,
     private val llmApiKeyRepository: LlmApiKeyRepository,
@@ -37,6 +39,7 @@ class ExecuteStreamingSuccessTest(
     fun `llm streaming success - should persist output and success status`() {
         val fixture = setupStreamingFixture(
             workspaceRepository = workspaceRepository,
+            organizationRepository = organizationRepository,
             llmVendorRepository = llmVendorRepository,
             llmModelRepository = llmModelRepository,
             llmApiKeyRepository = llmApiKeyRepository,

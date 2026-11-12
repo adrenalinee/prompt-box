@@ -87,7 +87,8 @@ implementation("org.jetbrains.kotlin:kotlin-reflect")
 
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("com.h2database:h2")
-    runtimeOnly("org.liquibase:liquibase-core")
+    // boot 4 부터 Liquibase 자동 설정은 별도 모듈이다. liquibase-core 만 있으면 spring.liquibase.* 가 동작하지 않는다.
+    implementation("org.springframework.boot:spring-boot-starter-liquibase")
 
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 

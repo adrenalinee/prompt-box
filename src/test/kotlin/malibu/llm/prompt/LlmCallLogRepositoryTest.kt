@@ -13,6 +13,7 @@ import malibu.llm.prompt.data.repo.LlmModelRepository
 import malibu.llm.prompt.data.repo.LlmVendorRepository
 import malibu.llm.prompt.data.repo.PromptRefRepository
 import malibu.llm.prompt.data.repo.PromptRepository
+import malibu.llm.prompt.data.repo.OrganizationRepository
 import malibu.llm.prompt.data.repo.WorkspaceRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -27,6 +28,7 @@ import java.util.UUID
 @ContextConfiguration(classes = [TestcontainersConfig::class])
 class LlmCallLogRepositoryTest(
     private val workspaceRepository: WorkspaceRepository,
+    private val organizationRepository: OrganizationRepository,
     private val llmVendorRepository: LlmVendorRepository,
     private val llmModelRepository: LlmModelRepository,
     private val llmApiKeyRepository: LlmApiKeyRepository,
@@ -38,6 +40,7 @@ class LlmCallLogRepositoryTest(
 
     private fun fixture(name: String) = setupStreamingFixture(
         workspaceRepository = workspaceRepository,
+        organizationRepository = organizationRepository,
         llmVendorRepository = llmVendorRepository,
         llmModelRepository = llmModelRepository,
         llmApiKeyRepository = llmApiKeyRepository,

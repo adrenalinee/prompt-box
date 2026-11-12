@@ -69,7 +69,12 @@ class WorkspacesController(
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     fun create(@RequestBody request: WorkspaceCreateRequest): WorkspaceResponse {
-        val workspace = workspaceService.create(request.name, request.description, request.defaultModelId)
+        val workspace = workspaceService.create(
+            request.organizationId,
+            request.name,
+            request.description,
+            request.defaultModelId,
+        )
         return workspace.toResponse()
     }
 
@@ -309,6 +314,7 @@ class WorkspacesController(
 
 private fun Workspace.toResponse() = WorkspaceResponse(
     id = requireNotNull(id),
+    organizationId = requireNotNull(organization.id),
     name = name,
     description = description,
     defaultModelId = defaultModel?.id,
@@ -318,6 +324,7 @@ private fun Workspace.toResponse() = WorkspaceResponse(
 
 private fun Workspace.toDetailResponse(defaultOptions: DefaultOptionsResponse?) = WorkspaceDetailResponse(
     id = requireNotNull(id),
+    organizationId = requireNotNull(organization.id),
     name = name,
     description = description,
     defaultModelId = defaultModel?.id,

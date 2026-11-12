@@ -1,6 +1,8 @@
 package malibu.llm.prompt.api
 
 import malibu.llm.prompt.data.LlmModelType
+import malibu.llm.prompt.data.entity.Organization
+import malibu.llm.prompt.data.repo.OrganizationRepository
 import malibu.llm.prompt.service.LlmCatalogService
 import malibu.llm.prompt.service.PromptService
 import malibu.llm.prompt.service.WorkspaceService
@@ -19,13 +21,16 @@ class DevInitController(
     private val workspaceService: WorkspaceService,
     private val llmCatalogService: LlmCatalogService,
     private val promptService: PromptService,
+    private val organizationRepository: OrganizationRepository,
 ) {
 
     @Transactional
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/init")
     fun init() {
-        val workspace = workspaceService.create("test",null, null)
+        // TODO(authz 3단계): 사용자 가입 시 개인 org + 기본 workspace 를 만들게 되면 여기서는 카탈로그만 만든다.
+        val organization = organizationRepository.save(Organization(name = "test"))
+        val workspace = workspaceService.create(requireNotNull(organization.id), "test", null, null)
         val vendor = llmCatalogService.createVendor("openai", null)
         llmCatalogService.createVendor("xai", null)
         llmCatalogService.createVendor("google", null)

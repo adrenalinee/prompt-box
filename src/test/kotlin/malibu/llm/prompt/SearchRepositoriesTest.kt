@@ -18,6 +18,7 @@ import malibu.llm.prompt.data.repo.LlmModelRepository
 import malibu.llm.prompt.data.repo.LlmVendorRepository
 import malibu.llm.prompt.data.repo.PromptRefRepository
 import malibu.llm.prompt.data.repo.PromptRepository
+import malibu.llm.prompt.data.repo.OrganizationRepository
 import malibu.llm.prompt.data.repo.WorkspaceRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -35,6 +36,7 @@ import java.util.UUID
 @ContextConfiguration(classes = [TestcontainersConfig::class])
 class SearchRepositoriesTest(
     private val workspaceRepository: WorkspaceRepository,
+    private val organizationRepository: OrganizationRepository,
     private val llmVendorRepository: LlmVendorRepository,
     private val llmModelRepository: LlmModelRepository,
     private val llmApiKeyRepository: LlmApiKeyRepository,
@@ -48,6 +50,7 @@ class SearchRepositoriesTest(
 
     private fun fixture(name: String) = setupStreamingFixture(
         workspaceRepository = workspaceRepository,
+        organizationRepository = organizationRepository,
         llmVendorRepository = llmVendorRepository,
         llmModelRepository = llmModelRepository,
         llmApiKeyRepository = llmApiKeyRepository,
@@ -59,8 +62,8 @@ class SearchRepositoriesTest(
     @Test
     fun `name filter is case-insensitive contains and ignored when blank`() {
         val t = token()
-        val a = workspaceRepository.save(Workspace(name = "alpha-$t"))
-        val b = workspaceRepository.save(Workspace(name = "BETA-$t"))
+        val a = workspaceRepository.save(Workspace(organization = testOrganization(organizationRepository), name = "alpha-$t"))
+        val b = workspaceRepository.save(Workspace(organization = testOrganization(organizationRepository), name = "BETA-$t"))
 
         // 대소문자가 섞인 이름의 정렬 순서는 DB collation 에 따라 다르므로 집합으로 비교한다.
         assertEquals(
@@ -122,8 +125,8 @@ class SearchRepositoriesTest(
     @Test
     fun `searchPrompts and searchRefs combine conditions`() {
         val t = token()
-        val ws1 = workspaceRepository.save(Workspace(name = "ws-prompt-1-$t"))
-        val ws2 = workspaceRepository.save(Workspace(name = "ws-prompt-2-$t"))
+        val ws1 = workspaceRepository.save(Workspace(organization = testOrganization(organizationRepository), name = "ws-prompt-1-$t"))
+        val ws2 = workspaceRepository.save(Workspace(organization = testOrganization(organizationRepository), name = "ws-prompt-2-$t"))
         val p1 = promptRepository.save(Prompt(name = "summary-$t", workspace = ws1))
         val p2 = promptRepository.save(Prompt(name = "translate-$t", workspace = ws1))
         promptRepository.save(Prompt(name = "summary-$t", workspace = ws2))

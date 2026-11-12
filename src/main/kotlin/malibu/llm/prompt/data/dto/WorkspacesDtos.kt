@@ -12,6 +12,8 @@ data class WorkspaceSearchSpec(
 )
 
 data class WorkspaceCreateRequest(
+    // TODO(authz 4단계): POST /organizations/{organizationId}/workspaces 로 옮기면서 경로 변수로 바뀐다.
+    val organizationId: UUID,
     val name: String,
     val description: String? = null,
     val defaultModelId: Long? = null,
@@ -25,6 +27,7 @@ data class WorkspaceUpdateRequest(
 
 data class WorkspaceResponse(
     val id: UUID,
+    val organizationId: UUID,
     val name: String,
     val description: String?,
     val defaultModelId: Long?,
@@ -34,6 +37,7 @@ data class WorkspaceResponse(
 
 data class WorkspaceDetailResponse(
     val id: UUID,
+    val organizationId: UUID,
     val name: String,
     val description: String?,
     val defaultModelId: Long?,

@@ -21,6 +21,10 @@ class WorkspaceNotFoundException(workspaceId: UUID) : NotFoundException(
     message = "워크스페이스를 찾을 수 없습니다. workspaceId: $workspaceId",
 )
 
+class OrganizationNotFoundException(organizationId: UUID) : NotFoundException(
+    message = "조직을 찾을 수 없습니다. organizationId: $organizationId",
+)
+
 class VendorNotFoundException(vendorId: UUID) : NotFoundException(
     message = "벤더를 찾을 수 없습니다. vendorId: $vendorId",
 )

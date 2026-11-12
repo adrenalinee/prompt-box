@@ -7,17 +7,28 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 import malibu.llm.prompt.data.BaseTimestamps
 import org.hibernate.annotations.UuidGenerator
 import java.util.*
 
 @Entity
-@Table(name = "workspace")
+@Table(
+    name = "workspace",
+    uniqueConstraints = [
+        // workspace_member 의 복합 FK (workspace_id, organization_id) 대상
+        UniqueConstraint(name = "ux_workspace_id_org", columnNames = ["id", "organization_id"]),
+    ],
+)
 class Workspace(
     @Id
     @UuidGenerator
     @Column(name = "id", nullable = false, columnDefinition = "uuid")
     var id: UUID? = null,
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "organization_id", nullable = false, updatable = false)
+    var organization: Organization,
 
     @Column(name = "name", nullable = false, length = 45)
     var name: String,

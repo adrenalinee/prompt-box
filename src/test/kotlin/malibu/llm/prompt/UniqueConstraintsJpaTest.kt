@@ -7,6 +7,7 @@ import malibu.llm.prompt.data.entity.Prompt
 import malibu.llm.prompt.data.entity.PromptRef
 import malibu.llm.prompt.data.PromptRefType
 import malibu.llm.prompt.data.entity.LlmVendor
+import malibu.llm.prompt.data.entity.Organization
 import malibu.llm.prompt.data.entity.Workspace
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
@@ -28,7 +29,9 @@ class UniqueConstraintsJpaTest(
     @Test
     @Transactional
     fun `prompt name must be unique within workspace`() {
-        val ws = Workspace(name = "ws1")
+        val org = Organization(name = "org1")
+        em.persist(org)
+        val ws = Workspace(organization = org, name = "ws1")
         em.persist(ws)
 
         em.persist(Prompt(name = "p1", workspace = ws))
@@ -43,7 +46,9 @@ class UniqueConstraintsJpaTest(
     @Test
     @Transactional
     fun `prompt ref must be unique by prompt + type + name`() {
-        val ws = Workspace(name = "ws1")
+        val org = Organization(name = "org1")
+        em.persist(org)
+        val ws = Workspace(organization = org, name = "ws1")
         em.persist(ws)
 
         val prompt = Prompt(name = "p1", workspace = ws)
