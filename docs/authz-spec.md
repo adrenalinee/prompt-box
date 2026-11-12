@@ -401,7 +401,9 @@ v2: 개발 단계이므로 수행하지 않는다. `001_init.sql` 을 직접 수
 
 - **마지막 OWNER 보호**: org에는 ORG_OWNER가 1명 이상이어야 한다. 강등/탈퇴/추방 시 `organization` 행을 `SELECT ... FOR UPDATE`로 잠근 뒤 검사한다.
 - **역할 상한**: `organization.member:manage`로는 ORG_OWNER를 부여/회수할 수 없다. OWNER 변경은 `organization.ownership:transfer`가 필요하다.
-  - 4단계 구현: 멤버 API 는 ORG_OWNER 부여, OWNER 인 멤버의 역할 변경/추방을 모두 403 `OWNER_CHANGE_NOT_ALLOWED` 로 거부한다. 소유권 이전은 대상→OWNER, 호출자→ORG_ADMIN 이며 org 행을 `FOR UPDATE` 로 잠근다. 따라서 현재 경로로는 OWNER 수가 0 이 되지 않는다. 6단계에서 남은 경우(복수 OWNER 간 강등/추방 허용 여부, 동시성)를 정리한다.
+  - 구현: 멤버 API 는 ORG_OWNER 부여, OWNER 인 멤버의 역할 변경/추방을 모두 403 `OWNER_CHANGE_NOT_ALLOWED` 로 거부한다. 소유권 이전은 대상→OWNER, 호출자→ORG_ADMIN 이다. 즉 OWNER 는 org 당 1명이며 이전으로만 바뀐다(복수 OWNER 는 지원하지 않는다).
+  - 마지막 OWNER 보호 구현(6단계): org 멤버십을 바꾸는 모든 경로(추가 / 역할 변경 / 추방 / 소유권 이전)는 org 행을 `FOR UPDATE` 로 먼저 잠근 뒤 멤버를 읽고, 변경 후 OWNER 수가 0 이면 409 로 롤백한다.
+    - 잠금이 없을 때의 실제 결함: 소유권 이전(X→OWNER)이 커밋되기 전에 다른 요청이 X 를 ORG_ADMIN 으로 읽고 추방 / 강등하면, 이전 커밋 뒤 그대로 실행되어 OWNER 가 0명이 된다. `MembershipInvariantsTest` 가 이 경쟁을 결정적으로 재현한다(수정 전 실패, 수정 후 통과).
 - **workspace 생성자**: workspace를 만든 사용자는 같은 트랜잭션에서 그 workspace의 WORKSPACE_ADMIN으로 등록된다(ORG_ADMIN/OWNER는 함의로 이미 ADMIN이지만, 명시적 멤버십도 남긴다).
 - **org 생성자**: org를 만든 사용자(또는 지정된 `ownerUserId`)는 같은 트랜잭션에서 ORG_OWNER가 된다.
 - **사용자 생성(v2)**: 사용자를 만들 때 같은 트랜잭션에서 개인 org(ORG_OWNER) + 기본 workspace(WORKSPACE_ADMIN)를 만든다.
@@ -416,7 +418,7 @@ v2: 개발 단계이므로 수행하지 않는다. `001_init.sql` 을 직접 수
 3. **인증/판정 컴포넌트**: JWT → userId 변환(§10), `/dev/token` 사용자 연동, `platformAuthz`, `orgAuthz`, `wsAuthz`, 권한 조회 리포지토리, 3상태 판정과 예외 매핑, `@EnableMethodSecurity`. 단위/통합 테스트 포함.
 4. **엔드포인트 적용**: §4.5 대로 경로 변경과 `@PreAuthorize` 부착, Spring Data REST 제거, `/me`·`my-permissions`·`/admin/...`·org/멤버 API 추가. 권한 어노테이션이 없는 엔드포인트가 남지 않았는지 검사하는 테스트 추가. (완료)
 5. **IDOR 교체**: §5. (완료)
-6. **서비스 불변식**: §7.
+6. **서비스 불변식**: §7. (완료)
 
 웹 콘솔(`prompt-box-console`)은 4단계 이후 경로 변경, `GET /me` 기반 로그인 검증, 권한 기반 버튼 노출, 404 처리를 맞춰 수정한다.
 

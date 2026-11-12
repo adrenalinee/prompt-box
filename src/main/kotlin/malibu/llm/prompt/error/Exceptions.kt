@@ -191,6 +191,11 @@ class OwnerRoleChangeNotAllowedException : ForbiddenException(
     message = "ORG_OWNER 는 멤버 관리로 부여/회수할 수 없습니다. 소유권 이전을 사용하세요.",
 )
 
+/** org 에는 ORG_OWNER 가 1명 이상 있어야 한다. (authz-spec §7 마지막 OWNER 보호) */
+class LastOwnerException : ConflictException(
+    message = "조직에는 ORG_OWNER 가 1명 이상 있어야 합니다.",
+)
+
 class SelfLockoutNotAllowedException : BadRequestException(
     message = "자기 자신을 비활성화하거나 자신의 플랫폼 역할을 회수할 수 없습니다.",
 )

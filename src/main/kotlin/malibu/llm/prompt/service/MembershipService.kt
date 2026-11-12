@@ -16,6 +16,7 @@ import malibu.llm.prompt.data.repo.WorkspaceMemberRepository
 import malibu.llm.prompt.data.repo.WorkspaceRepository
 import malibu.llm.prompt.error.BadRequestException
 import malibu.llm.prompt.error.InvalidRoleException
+import malibu.llm.prompt.error.LastOwnerException
 import malibu.llm.prompt.error.MemberAlreadyExistsException
 import malibu.llm.prompt.error.MemberNotFoundException
 import malibu.llm.prompt.error.NotOrganizationMemberException
@@ -34,7 +35,11 @@ import java.util.UUID
  *
  * 역할 상한(authz-spec §7): 멤버 관리(organization.member:manage)로는 ORG_OWNER 를 부여하거나,
  * OWNER 인 멤버의 역할을 바꾸거나 내보낼 수 없다. OWNER 변경은 소유권 이전으로만 한다.
- * 그래서 멤버 관리로는 OWNER 수가 줄지 않는다.
+ *
+ * 마지막 OWNER 보호(authz-spec §7): org 멤버십을 바꾸는 모든 경로는
+ * 1) org 행을 SELECT ... FOR UPDATE 로 먼저 잠근 뒤 멤버를 읽고 (소유권 이전과 직렬화)
+ * 2) 변경 후 OWNER 가 1명 이상인지 다시 확인한다(0명이면 409 로 롤백).
+ * 잠금 없이 읽으면 동시에 진행 중인 소유권 이전의 대상(곧 OWNER)을 ORG_ADMIN 으로 보고 내보낼 수 있다.
  */
 @Service
 class MembershipService(
@@ -56,8 +61,7 @@ class MembershipService(
 
     @Transactional
     fun addOrganizationMember(organizationId: UUID, email: String, roleCode: String): OrganizationMember {
-        val organization = organizationRepository.findById(organizationId)
-            .orElseThrow { OrganizationNotFoundException(organizationId) }
+        val organization = lockOrganization(organizationId)
         val role = organizationRoleForMemberManage(roleCode)
         val user = findUserByEmail(email)
         val id = OrganizationMemberId(organizationId, user.id)
@@ -71,33 +75,36 @@ class MembershipService(
     @Transactional
     fun changeOrganizationMemberRole(organizationId: UUID, userId: UUID, roleCode: String): OrganizationMember {
         val role = organizationRoleForMemberManage(roleCode)
+        lockOrganization(organizationId)
         val member = findOrganizationMember(organizationId, userId)
         if (member.role.code == Roles.ORG_OWNER) {
             throw OwnerRoleChangeNotAllowedException()
         }
         member.role = role
+        assertOwnerRemains(organizationId)
         return member
     }
 
     /** org 에서 내보내면 그 org 의 workspace 멤버십도 함께 지운다. */
     @Transactional
     fun removeOrganizationMember(organizationId: UUID, userId: UUID) {
+        lockOrganization(organizationId)
         val member = findOrganizationMember(organizationId, userId)
         if (member.role.code == Roles.ORG_OWNER) {
             throw OwnerRoleChangeNotAllowedException()
         }
         workspaceMemberRepository.deleteByOrganizationIdAndUserId(organizationId, userId)
         organizationMemberRepository.delete(member)
+        assertOwnerRemains(organizationId)
     }
 
     /**
      * 소유권 이전. 대상 멤버는 ORG_OWNER 가 되고, 호출자(현재 OWNER)는 ORG_ADMIN 이 된다.
-     * org 행을 잠가 동시 이전을 직렬화한다.
+     * org 행을 잠가 동시 이전 / 멤버 변경과 직렬화한다.
      */
     @Transactional
     fun transferOwnership(organizationId: UUID, fromUserId: UUID, toUserId: UUID) {
-        organizationRepository.findByIdForUpdate(organizationId)
-            ?: throw OrganizationNotFoundException(organizationId)
+        lockOrganization(organizationId)
         if (fromUserId == toUserId) {
             throw BadRequestException("자기 자신에게 소유권을 이전할 수 없습니다.")
         }
@@ -108,6 +115,7 @@ class MembershipService(
         val to = findOrganizationMember(organizationId, toUserId)
         to.role = requireRole(Roles.ORG_OWNER)
         from.role = requireRole(Roles.ORG_ADMIN)
+        assertOwnerRemains(organizationId)
     }
 
     // ---- workspace ----
@@ -148,6 +156,19 @@ class MembershipService(
     }
 
     // ---- helpers ----
+
+    /** org 멤버십 변경의 직렬화 지점. 멤버는 반드시 이 잠금 뒤에 읽는다. */
+    private fun lockOrganization(organizationId: UUID) =
+        organizationRepository.findByIdForUpdate(organizationId)
+            ?: throw OrganizationNotFoundException(organizationId)
+
+    /** 변경을 반영한 뒤 OWNER 수를 센다. 역할 상한을 우회하는 경로가 생겨도 0명으로 커밋되지 않게 한다. */
+    private fun assertOwnerRemains(organizationId: UUID) {
+        entityManager.flush()
+        if (organizationMemberRepository.countByIdOrganizationIdAndRoleCode(organizationId, Roles.ORG_OWNER) == 0L) {
+            throw LastOwnerException()
+        }
+    }
 
     private fun findOrganizationMember(organizationId: UUID, userId: UUID): OrganizationMember =
         organizationMemberRepository.findById(OrganizationMemberId(organizationId, userId))

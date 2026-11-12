@@ -26,6 +26,8 @@ interface OrganizationMemberRepository : JpaRepository<OrganizationMember, Organ
     @EntityGraph(attributePaths = ["user", "role"])
     fun findByIdOrganizationId(organizationId: UUID, pageable: Pageable): Page<OrganizationMember>
 
+    fun countByIdOrganizationIdAndRoleCode(organizationId: UUID, roleCode: String): Long
+
     @Modifying
     @Query("delete from OrganizationMember om where om.id.organizationId = :organizationId")
     fun deleteByOrganizationId(organizationId: UUID): Int
