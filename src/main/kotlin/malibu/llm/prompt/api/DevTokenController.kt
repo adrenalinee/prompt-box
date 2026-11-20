@@ -1,5 +1,7 @@
 package malibu.llm.prompt.api
 
+import io.swagger.v3.oas.annotations.tags.Tag
+import io.swagger.v3.oas.annotations.Operation
 import malibu.llm.prompt.config.LocalJwtProperties
 import malibu.llm.prompt.data.dto.DevTokenRequest
 import malibu.llm.prompt.data.dto.DevTokenResponse
@@ -22,6 +24,7 @@ import java.time.Instant
  * local profile 전용. 로컬 테스트용 JWT 를 발급한다.
  * 이메일로 사용자를 찾고 없으면 만든다(로컬에서만 허용하는 JIT 가입). 서버는 관리자 사전 등록 방식이다.
  */
+@Tag(name = "개발용 (local)", description = "local 프로필에서만 존재하는 API.")
 @Profile("local")
 @RestController
 @RequestMapping("/dev")
@@ -32,6 +35,7 @@ class DevTokenController(
 ) {
 
     @PostMapping("/token")
+    @Operation(summary = "테스트 토큰 발급", description = "인증 없이 호출한다. email 로 사용자를 찾고 없으면 만든다(개인 org 와 기본 workspace 포함). 처음 만들어진 사용자는 PLATFORM_ADMIN 이 된다. 받은 accessToken 을 Authorization: Bearer 헤더에 넣는다.")
     fun issueToken(@RequestBody(required = false) request: DevTokenRequest?): DevTokenResponse {
         val req = request ?: DevTokenRequest()
         // 로컬 전용 JIT 가입: 없으면 사용자 + 개인 org + 기본 workspace 를 만든다. 첫 사용자는 PLATFORM_ADMIN.

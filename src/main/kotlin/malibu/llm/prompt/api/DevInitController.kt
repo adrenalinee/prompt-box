@@ -1,5 +1,7 @@
 package malibu.llm.prompt.api
 
+import io.swagger.v3.oas.annotations.tags.Tag
+import io.swagger.v3.oas.annotations.Operation
 import malibu.llm.prompt.data.LlmModelType
 import malibu.llm.prompt.data.repo.WorkspaceMemberRepository
 import malibu.llm.prompt.security.CurrentUser
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController
 /**
  * local profile 전용. 로그인한 사용자로 호출한다(인증 필요).
  */
+@Tag(name = "개발용 (local)", description = "local 프로필에서만 존재하는 API.")
 @Profile("local")
 @RestController
 @RequestMapping("/dev")
@@ -30,6 +33,7 @@ class DevInitController(
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/init")
     @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "샘플 데이터 생성", description = "LLM 벤더(openai / xai / google)와 샘플 모델을 만들고, 호출한 사용자의 기본 workspace 에 샘플 프롬프트를 넣는다. 인증이 필요하다.")
     fun init() {
         // workspace 는 사용자 가입(/dev/token) 시 개인 org 와 함께 만들어진다.
         // 카탈로그를 만들고, 샘플 프롬프트는 호출한 사용자의 첫 workspace(기본 workspace)에 넣는다.

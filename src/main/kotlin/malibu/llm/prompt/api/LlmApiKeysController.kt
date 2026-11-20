@@ -1,5 +1,7 @@
 package malibu.llm.prompt.api
 
+import io.swagger.v3.oas.annotations.tags.Tag
+import io.swagger.v3.oas.annotations.Operation
 import malibu.llm.prompt.authz.Permissions
 import malibu.llm.prompt.data.dto.LlmApiKeyCreateRequest
 import malibu.llm.prompt.data.dto.LlmApiKeyResponse
@@ -28,6 +30,7 @@ import java.util.UUID
  * 목록/조회는 실행하려면 키를 골라야 하므로 llm:execute 로 연다. 값은 last5 만 내려간다.
  * apiKeyId 는 경로의 workspaceId 조건으로만 조회한다. (authz-spec §5)
  */
+@Tag(name = "LLM API 키", description = "workspace 에 등록한 벤더 API 키. 값은 암호화해 저장하며 응답에는 끝 5자리(last5)만 내려간다. LLM 호출 때 키를 골라야 하므로 목록 / 조회는 llm:execute 권한으로 열려 있고, 변경은 api_key:manage 가 필요하다.")
 @RestController
 @RequestMapping("/workspaces/{workspaceId}/llm-api-keys")
 class LlmApiKeysController(
@@ -37,6 +40,7 @@ class LlmApiKeysController(
     @PostMapping
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.API_KEY_MANAGE}')")
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "API 키 등록")
     fun create(
         @PathVariable workspaceId: UUID,
         @RequestBody request: LlmApiKeyCreateRequest,
@@ -53,6 +57,7 @@ class LlmApiKeysController(
 
     @GetMapping
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.LLM_EXECUTE}')")
+    @Operation(summary = "API 키 목록", description = "vendorId, name 으로 거른다.")
     fun list(
         @PathVariable workspaceId: UUID,
         @RequestParam(required = false) vendorId: UUID?,
@@ -66,6 +71,7 @@ class LlmApiKeysController(
 
     @GetMapping("/{apiKeyId}")
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.LLM_EXECUTE}')")
+    @Operation(summary = "API 키 조회")
     fun get(
         @PathVariable workspaceId: UUID,
         @PathVariable apiKeyId: UUID,
@@ -75,6 +81,7 @@ class LlmApiKeysController(
 
     @PatchMapping("/{apiKeyId}")
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.API_KEY_MANAGE}')")
+    @Operation(summary = "API 키 수정", description = "value 를 보내면 키 값을 교체한다.")
     fun update(
         @PathVariable workspaceId: UUID,
         @PathVariable apiKeyId: UUID,
@@ -93,6 +100,7 @@ class LlmApiKeysController(
     @DeleteMapping("/{apiKeyId}")
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.API_KEY_MANAGE}')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "API 키 삭제")
     fun delete(
         @PathVariable workspaceId: UUID,
         @PathVariable apiKeyId: UUID,

@@ -1,5 +1,6 @@
 package malibu.llm.prompt.data.dto
 
+import io.swagger.v3.oas.annotations.media.Schema
 import malibu.llm.prompt.data.InputRole
 import malibu.llm.prompt.data.PromptRefType
 import java.time.Instant
@@ -26,12 +27,13 @@ data class PromptCreateRequest(
 )
 
 data class PromptUpdateRequest(
+    @field:Schema(description = "이름. 보내지 않거나 null / 빈 문자열이면 변경 없음.")
     val name: String? = null,
-    /** null 이면 지운다. */
+    @field:Schema(description = "설명. 보내지 않으면 변경 없음, null 이면 지운다.")
     val description: Patch<String?> = Patch.Absent,
-    /** 프롬프트에는 항상 default branch 가 있어야 하므로 지울 수 없다. null = 변경 없음. */
+    @field:Schema(description = "default branch 로 지정할 BRANCH ref ID. 프롬프트에는 항상 default branch 가 있어야 하므로 지울 수 없다. 보내지 않거나 null 이면 변경 없음.")
     val defaultBranchRefId: Long? = null,
-    /** null 이면 latest tag 를 해제한다(publish 권한 필요). */
+    @field:Schema(description = "latest tag 로 지정할 TAG ref ID. 보내지 않으면 변경 없음, null 이면 latest tag 를 해제한다. 보내면(null 포함) prompt_ref:publish 권한이 필요하다.")
     val latestTagRefId: Patch<Long?> = Patch.Absent,
 )
 
@@ -49,9 +51,11 @@ data class PromptRefCreateRequest(
 )
 
 data class PromptRefUpdateRequest(
+    @field:Schema(description = "ref 이름. 보내지 않거나 null / 빈 문자열이면 변경 없음.")
     val name: String? = null,
-    /** null 이면 지운다. */
+    @field:Schema(description = "설명. 보내지 않으면 변경 없음, null 이면 지운다.")
     val description: Patch<String?> = Patch.Absent,
+    @field:Schema(description = "instructions 본문. 보내지 않거나 null 이면 변경 없음. 빈 문자열을 보내면 빈 값으로 바뀐다.")
     val instructions: String? = null,
 )
 
@@ -94,7 +98,10 @@ data class AdditionalInputCreateRequest(
 )
 
 data class AdditionalInputUpdateRequest(
+    @field:Schema(description = "순서(1부터). 범위를 벗어나면 맨 앞 / 맨 뒤로 맞춘다. 바꾸면 나머지 항목의 순서가 다시 매겨진다. 보내지 않거나 null 이면 변경 없음.")
     val position: Int? = null,
+    @field:Schema(description = "입력 역할. 보내지 않거나 null 이면 변경 없음.")
     val role: InputRole? = null,
+    @field:Schema(description = "메시지 본문. 보내지 않거나 null 이면 변경 없음.")
     val message: String? = null,
 )

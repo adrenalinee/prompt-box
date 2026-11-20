@@ -1,5 +1,6 @@
 package malibu.llm.prompt.data.dto
 
+import io.swagger.v3.oas.annotations.media.Schema
 import malibu.llm.prompt.authz.AuthzScope
 import malibu.llm.prompt.data.OrganizationStatus
 import malibu.llm.prompt.data.UserStatus
@@ -68,8 +69,11 @@ data class UserCreateRequest(
 
 /** PATCH /admin/users/{userId}. platformRoles 를 주면 그 목록으로 교체한다. */
 data class UserUpdateRequest(
+    @field:Schema(description = "이름. 보내지 않거나 null / 빈 문자열이면 변경 없음.")
     val name: String? = null,
+    @field:Schema(description = "상태. 보내지 않거나 null 이면 변경 없음. 자기 자신은 비활성화할 수 없다.")
     val status: UserStatus? = null,
+    @field:Schema(description = "플랫폼 역할 코드 목록. 보내면 전체를 이 목록으로 교체한다(빈 배열이면 모두 회수). 보내지 않거나 null 이면 변경 없음.")
     val platformRoles: List<String>? = null,
 )
 
@@ -90,6 +94,7 @@ data class OrganizationCreateRequest(
 )
 
 data class OrganizationUpdateRequest(
+    @field:Schema(description = "이름. 보내지 않거나 null / 빈 문자열이면 변경 없음.")
     val name: String? = null,
 )
 

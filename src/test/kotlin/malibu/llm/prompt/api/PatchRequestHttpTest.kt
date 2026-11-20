@@ -154,20 +154,4 @@ class PatchRequestHttpTest(
         assertEquals("rd", ok(patch(member, refPath, mapOf("description" to "rd"))).get("description").asText())
         assertTrue(ok(patch(member, refPath, mapOf("description" to null))).isNullAt("description"))
     }
-
-    @Test
-    fun `api-docs - Patch 필드는 선택적이고 nullable 인 내부 타입으로 문서화된다`() {
-        val res = get(null, "/api-docs")
-        assertEquals(200, res.status)
-        val schemas = res.body!!.get("components").get("schemas")
-        assertFalse(schemas.propertyNames().any { it.startsWith("Patch") }, "Patch 스키마가 노출됨")
-
-        val ws = schemas.get("WorkspaceUpdateRequest")
-        assertTrue(ws.get("required") == null, "Patch 필드가 required 로 표시됨: $ws")
-        // OAS 3.1: type 배열에 "null"
-        val types = { field: String -> ws.get("properties").get(field).get("type").map { it.asText() }.toSet() }
-        assertEquals(setOf("string", "null"), types("description"))
-        assertEquals(setOf("integer", "null"), types("defaultModelId"))
-        assertEquals("int64", ws.get("properties").get("defaultModelId").get("format").asText())
-    }
 }

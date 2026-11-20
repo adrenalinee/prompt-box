@@ -1,5 +1,7 @@
 package malibu.llm.prompt.api
 
+import io.swagger.v3.oas.annotations.tags.Tag
+import io.swagger.v3.oas.annotations.Operation
 import malibu.llm.prompt.authz.Permissions
 import malibu.llm.prompt.data.dto.LlmVendorCreateRequest
 import malibu.llm.prompt.data.dto.LlmVendorResponse
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
+@Tag(name = "LLM 벤더", description = "LLM 제공 벤더(openai / google / xai). 플랫폼 전체가 공유한다. 이름이 서버의 벤더 클라이언트 이름과 같아야 호출에 쓸 수 있다. 조회는 로그인한 사용자 누구나, 변경은 플랫폼 권한이 필요하다.")
 @RestController
 @RequestMapping("/llm-vendors")
 class LlmVendorsController(
@@ -32,6 +35,7 @@ class LlmVendorsController(
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "벤더 목록")
     fun list(
         @ParameterObject searchSpec: LlmVendorSearchSpec,
         @PageableDefault(size = 20, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable,
@@ -41,6 +45,7 @@ class LlmVendorsController(
     @PostMapping
     @PreAuthorize("@platformAuthz.has('${Permissions.LLM_VENDOR_MANAGE}')")
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "벤더 생성")
     fun create(@RequestBody request: LlmVendorCreateRequest): LlmVendorResponse {
         val vendor = llmCatalogService.createVendor(request.name, request.description)
         return vendor.toResponse()
@@ -48,12 +53,14 @@ class LlmVendorsController(
 
     @GetMapping("/{vendorId}")
     @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "벤더 조회")
     fun get(@PathVariable vendorId: UUID): LlmVendorResponse {
         return llmCatalogService.getVendor(vendorId).toResponse()
     }
 
     @PatchMapping("/{vendorId}")
     @PreAuthorize("@platformAuthz.has('${Permissions.LLM_VENDOR_MANAGE}')")
+    @Operation(summary = "벤더 수정")
     fun update(
         @PathVariable vendorId: UUID,
         @RequestBody request: LlmVendorUpdateRequest,
@@ -64,6 +71,7 @@ class LlmVendorsController(
     @DeleteMapping("/{vendorId}")
     @PreAuthorize("@platformAuthz.has('${Permissions.LLM_VENDOR_MANAGE}')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "벤더 삭제", description = "이 벤더를 쓰는 모델이나 API 키가 있으면 409.")
     fun delete(@PathVariable vendorId: UUID) {
         llmCatalogService.deleteVendor(vendorId)
     }

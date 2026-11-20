@@ -1,5 +1,7 @@
 package malibu.llm.prompt.api
 
+import io.swagger.v3.oas.annotations.tags.Tag
+import io.swagger.v3.oas.annotations.Operation
 import malibu.llm.prompt.authz.OrgAuthz
 import malibu.llm.prompt.authz.Permissions
 import malibu.llm.prompt.data.dto.MemberCreateRequest
@@ -41,6 +43,7 @@ import java.util.UUID
  * org 와 org 멤버, org 안의 workspace.
  * org 생성 / 전체 조회 / 정지는 플랫폼 관리(/admin/organizations).
  */
+@Tag(name = "Organization", description = "org 와 org 멤버, org 안의 workspace. org 생성 / 전체 조회 / 정지는 플랫폼 관리 API(/admin/organizations)에 있다.")
 @RestController
 @RequestMapping("/organizations")
 class OrganizationsController(
@@ -53,6 +56,7 @@ class OrganizationsController(
     /** 내가 멤버인 org. SUSPENDED org 도 status 와 함께 내려간다(접근은 404). */
     @GetMapping
     @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "내 Organization 목록", description = "내가 멤버인 org 와 내 역할. SUSPENDED org 도 status 와 함께 내려가지만, 접근하면 404 다.")
     fun listMine(): List<MyOrganizationResponse> =
         organizationService.listMemberships(CurrentUser.userId()).map {
             MyOrganizationResponse(
@@ -65,11 +69,13 @@ class OrganizationsController(
 
     @GetMapping("/{organizationId}")
     @PreAuthorize("@orgAuthz.has(#organizationId, '${Permissions.ORGANIZATION_READ}')")
+    @Operation(summary = "Organization 조회")
     fun get(@PathVariable organizationId: UUID): OrganizationResponse =
         organizationService.get(organizationId).toResponse()
 
     @GetMapping("/{organizationId}/my-permissions")
     @PreAuthorize("@orgAuthz.has(#organizationId, '${Permissions.ORGANIZATION_READ}')")
+    @Operation(summary = "이 org 에서 내 권한", description = "콘솔에서 버튼 노출을 정할 때 쓴다.")
     fun myPermissions(@PathVariable organizationId: UUID): OrganizationPermissionsResponse =
         OrganizationPermissionsResponse(
             organizationId = organizationId,
@@ -78,6 +84,7 @@ class OrganizationsController(
 
     @PatchMapping("/{organizationId}")
     @PreAuthorize("@orgAuthz.has(#organizationId, '${Permissions.ORGANIZATION_UPDATE}')")
+    @Operation(summary = "Organization 수정")
     fun update(
         @PathVariable organizationId: UUID,
         @RequestBody request: OrganizationUpdateRequest,
@@ -88,6 +95,7 @@ class OrganizationsController(
     @DeleteMapping("/{organizationId}")
     @PreAuthorize("@orgAuthz.has(#organizationId, '${Permissions.ORGANIZATION_DELETE}')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Organization 삭제", description = "workspace 가 남아 있으면 409.")
     fun delete(@PathVariable organizationId: UUID) {
         organizationService.delete(organizationId)
     }
@@ -96,6 +104,7 @@ class OrganizationsController(
 
     @GetMapping("/{organizationId}/members")
     @PreAuthorize("@orgAuthz.has(#organizationId, '${Permissions.ORGANIZATION_READ}')")
+    @Operation(summary = "org 멤버 목록")
     fun listMembers(
         @PathVariable organizationId: UUID,
         @PageableDefault(size = 50, sort = ["joinedAt"], direction = Sort.Direction.ASC) pageable: Pageable,
@@ -106,6 +115,7 @@ class OrganizationsController(
     @PostMapping("/{organizationId}/members")
     @PreAuthorize("@orgAuthz.has(#organizationId, '${Permissions.ORGANIZATION_MEMBER_MANAGE}')")
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "org 멤버 추가", description = "이미 등록된 사용자를 email 로 추가한다. ORG_OWNER 는 부여할 수 없다(소유권 이전 API 를 쓴다).")
     fun addMember(
         @PathVariable organizationId: UUID,
         @RequestBody request: MemberCreateRequest,
@@ -115,6 +125,7 @@ class OrganizationsController(
     /** OWNER 부여/회수는 할 수 없다. */
     @PatchMapping("/{organizationId}/members/{userId}")
     @PreAuthorize("@orgAuthz.has(#organizationId, '${Permissions.ORGANIZATION_MEMBER_MANAGE}')")
+    @Operation(summary = "org 멤버 역할 변경", description = "ORG_OWNER 를 부여하거나 회수할 수 없다.")
     fun updateMember(
         @PathVariable organizationId: UUID,
         @PathVariable userId: UUID,
@@ -126,6 +137,7 @@ class OrganizationsController(
     @DeleteMapping("/{organizationId}/members/{userId}")
     @PreAuthorize("@orgAuthz.has(#organizationId, '${Permissions.ORGANIZATION_MEMBER_MANAGE}')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "org 멤버 내보내기", description = "ORG_OWNER 는 내보낼 수 없다. 그 사용자의 이 org 안 workspace 멤버십도 함께 지워진다.")
     fun removeMember(
         @PathVariable organizationId: UUID,
         @PathVariable userId: UUID,
@@ -137,6 +149,7 @@ class OrganizationsController(
     @PostMapping("/{organizationId}/ownership-transfer")
     @PreAuthorize("@orgAuthz.has(#organizationId, '${Permissions.ORGANIZATION_OWNERSHIP_TRANSFER}')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "소유권 이전", description = "대상(이미 org 멤버여야 한다)이 ORG_OWNER 가 되고, 호출자는 ORG_ADMIN 이 된다.")
     fun transferOwnership(
         @PathVariable organizationId: UUID,
         @RequestBody request: OwnershipTransferRequest,
@@ -149,6 +162,7 @@ class OrganizationsController(
     /** workspace:list_all 이 있으면 org 의 전체 workspace, 없으면 내가 접근 가능한 것만. */
     @GetMapping("/{organizationId}/workspaces")
     @PreAuthorize("@orgAuthz.has(#organizationId, '${Permissions.ORGANIZATION_READ}')")
+    @Operation(summary = "org 의 workspace 목록", description = "workspace:list_all 권한이 있으면 org 의 모든 workspace, 없으면 내가 접근할 수 있는 것만 내려간다.")
     fun listWorkspaces(
         @PathVariable organizationId: UUID,
         @RequestParam(required = false) name: String?,
@@ -166,6 +180,7 @@ class OrganizationsController(
     @PostMapping("/{organizationId}/workspaces")
     @PreAuthorize("@orgAuthz.has(#organizationId, '${Permissions.WORKSPACE_CREATE}')")
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "workspace 생성", description = "만든 사용자는 그 workspace 의 WORKSPACE_ADMIN 이 된다.")
     fun createWorkspace(
         @PathVariable organizationId: UUID,
         @RequestBody request: WorkspaceCreateRequest,

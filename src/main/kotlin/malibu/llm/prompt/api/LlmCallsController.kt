@@ -1,5 +1,6 @@
 package malibu.llm.prompt.api
 
+import io.swagger.v3.oas.annotations.tags.Tag
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.DiscriminatorMapping
@@ -47,6 +48,7 @@ import java.util.*
  *
  * callLogId 는 경로의 workspaceId 조건으로만 조회한다. (authz-spec §5)
  */
+@Tag(name = "LLM 호출", description = "LLM 스트리밍 호출(SSE), 호출 취소, 호출 로그.")
 @RestController
 @RequestMapping("/workspaces/{workspaceId}/llm-calls")
 class LlmCallsController(
@@ -58,6 +60,7 @@ class LlmCallsController(
 
     @GetMapping
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.CALL_LOG_READ}')")
+    @Operation(summary = "호출 로그 목록", description = "modelId, status, promptId 로 거른다.")
     fun listLogs(
         @PathVariable workspaceId: UUID,
         @RequestParam(required = false) modelId: Long?,
@@ -72,6 +75,7 @@ class LlmCallsController(
 
     @GetMapping("/{callLogId}")
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.CALL_LOG_READ}')")
+    @Operation(summary = "호출 로그 상세", description = "호출 정보와 입력 / 출력 item, 토큰 사용량을 포함한다.")
     fun getLog(
         @PathVariable workspaceId: UUID,
         @PathVariable callLogId: UUID,
@@ -81,21 +85,28 @@ class LlmCallsController(
     @PostMapping(produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.LLM_EXECUTE}')")
     @Operation(
-        summary = "Execute LLM call (streaming)",
+        summary = "LLM 호출 (스트리밍)",
         description = """
-            Returns Server-Sent Events (SSE). Each SSE event name is the payload's `type` value.
+            모델을 호출하고 결과를 Server-Sent Events(SSE)로 스트리밍한다. 호출 결과는 호출 로그로 저장된다.
 
-            Event types include `log.created`, `response.created`, message content lifecycle events,
-            reasoning lifecycle events, `response.function_call.done`, and `response.completed`.
-            `response.function_call.done` is emitted after a configured function callback finishes. On
-            success it includes `output` and `delivery`; on failure it includes `errorMessage`.
-            If `delivery` is `RETURN_DIRECT`, the stream can finish after synthetic message events
-            without a `response.completed` event.
+            - promptRefId 를 주면 그 ref 의 instructions 와 추가 입력 항목으로 호출한다. 이때 rawInstructionsText 와
+              inputItems 는 쓰지 않는다.
+            - promptRefId 가 없으면 rawInstructionsText 와 inputItems 로 호출한다. 둘 다 비어 있으면 오류.
+            - 호출 옵션은 workspace 기본 옵션에 요청의 overrideOptions 를 덮어쓴 뒤, 모델 타입에 맞는 것만 쓴다.
+            - 모델 벤더와 API 키 벤더가 다르면 400. 벤더에 따라 지원하지 않는 입력 조합도 400
+              (예: google 은 instructions 만으로 호출할 수 없다).
+
+            SSE 이벤트 이름은 payload 의 `type` 값과 같다. 첫 이벤트는 `log.created` 이며, 여기서 받은 callLogId 로
+            호출 취소(`POST .../{callLogId}/cancel`)와 로그 조회를 한다. 이어서 `response.created`, 메시지 / reasoning
+            수명주기 이벤트, `response.function_call.done`, `response.completed` 가 온다.
+            `response.function_call.done` 은 설정된 함수 콜백이 끝난 뒤 나간다. 성공하면 `output` 과 `delivery` 가,
+            실패하면 `errorMessage` 가 들어 있다. `delivery` 가 `RETURN_DIRECT` 면 합성 메시지 이벤트 뒤에
+            `response.completed` 없이 스트림이 끝날 수 있다.
         """,
         responses = [
             ApiResponse(
                 responseCode = "200",
-                description = "SSE stream of LLM call lifecycle, output, reasoning, and function call events.",
+                description = "LLM 호출 수명주기, 출력, reasoning, 함수 호출 이벤트의 SSE 스트림.",
                 content = [
                     Content(
                         mediaType = MediaType.TEXT_EVENT_STREAM_VALUE,
@@ -179,7 +190,7 @@ class LlmCallsController(
                     ),
                 ],
             ),
-            ApiResponse(responseCode = "400", description = "Bad request"),
+            ApiResponse(responseCode = "400", description = "잘못된 요청(벤더 불일치, 지원하지 않는 입력 등)"),
         ],
     )
     fun execute(
@@ -209,6 +220,7 @@ class LlmCallsController(
     @PostMapping("/{callLogId}/cancel")
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.LLM_EXECUTE}')")
     @ResponseStatus(HttpStatus.ACCEPTED)
+    @Operation(summary = "호출 취소", description = "진행 중인 스트리밍 호출을 취소한다. callLogId 는 스트림의 첫 이벤트(log.created)에서 받는다. 진행 중인 스트림이 없으면 404.")
     fun cancel(
         @PathVariable workspaceId: UUID,
         @PathVariable callLogId: UUID,

@@ -1,5 +1,6 @@
 package malibu.llm.prompt.data.dto
 
+import io.swagger.v3.oas.annotations.media.Schema
 import malibu.llm.prompt.data.InputRole
 import malibu.llm.streamclient.ReasoningEffortType
 import malibu.llm.streamclient.SummaryType
@@ -20,10 +21,11 @@ data class WorkspaceCreateRequest(
 )
 
 data class WorkspaceUpdateRequest(
+    @field:Schema(description = "이름. 보내지 않거나 null / 빈 문자열이면 변경 없음.")
     val name: String? = null,
-    /** null 이면 지운다. */
+    @field:Schema(description = "설명. 보내지 않으면 변경 없음, null 이면 지운다.")
     val description: Patch<String?> = Patch.Absent,
-    /** null 이면 기본 모델을 해제한다. */
+    @field:Schema(description = "기본 모델 ID. 보내지 않으면 변경 없음, null 이면 기본 모델을 해제한다.")
     val defaultModelId: Patch<Long?> = Patch.Absent,
 )
 

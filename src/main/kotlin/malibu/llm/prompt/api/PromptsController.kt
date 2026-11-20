@@ -1,5 +1,7 @@
 package malibu.llm.prompt.api
 
+import io.swagger.v3.oas.annotations.tags.Tag
+import io.swagger.v3.oas.annotations.Operation
 import malibu.llm.prompt.authz.Permissions
 import malibu.llm.prompt.authz.WorkspaceAuthz
 import malibu.llm.prompt.data.PromptRefType
@@ -40,6 +42,7 @@ import java.util.UUID
 /**
  * prompt / ref / additional input 은 경로의 workspaceId 조건으로만 조회한다. 다른 workspace 의 ID 는 404. (authz-spec §5)
  */
+@Tag(name = "Prompt", description = "프롬프트와 ref(버전), ref 의 추가 입력 항목. 프롬프트는 git 처럼 ref 로 버전을 관리한다. BRANCH 는 수정할 수 있고 TAG 는 고정된 스냅샷이다. TAG 생성 / 삭제와 latest tag 변경은 publish 권한(prompt_ref:publish)이 필요하다.")
 @RestController
 @RequestMapping("/workspaces/{workspaceId}/prompts")
 class PromptsController(
@@ -50,6 +53,7 @@ class PromptsController(
     @PostMapping
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.PROMPT_WRITE}')")
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "프롬프트 생성", description = "instructions 와 추가 입력으로 첫 BRANCH(mainRefName, 기본값 main)를 만들고 default branch 로 지정한다.")
     fun create(
         @PathVariable workspaceId: UUID,
         @RequestBody request: PromptCreateRequest,
@@ -67,6 +71,7 @@ class PromptsController(
 
     @GetMapping
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.PROMPT_READ}')")
+    @Operation(summary = "프롬프트 목록", description = "name 으로 검색한다.")
     fun list(
         @PathVariable workspaceId: UUID,
         @RequestParam(required = false) name: String?,
@@ -77,6 +82,7 @@ class PromptsController(
 
     @GetMapping("/{promptId}")
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.PROMPT_READ}')")
+    @Operation(summary = "프롬프트 조회")
     fun get(
         @PathVariable workspaceId: UUID,
         @PathVariable promptId: UUID,
@@ -90,6 +96,7 @@ class PromptsController(
         "@wsAuthz.has(#workspaceId, '${Permissions.PROMPT_WRITE}')" +
             " and (!#request.latestTagRefId.isPresent() or @wsAuthz.has(#workspaceId, '${Permissions.PROMPT_REF_PUBLISH}'))"
     )
+    @Operation(summary = "프롬프트 수정", description = "defaultBranchRefId 는 BRANCH, latestTagRefId 는 TAG 여야 한다. latestTagRefId 를 보내면(null 로 해제 포함) publish 권한이 필요하다.")
     fun update(
         @PathVariable workspaceId: UUID,
         @PathVariable promptId: UUID,
@@ -108,6 +115,7 @@ class PromptsController(
     @DeleteMapping("/{promptId}")
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.PROMPT_DELETE}')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "프롬프트 삭제", description = "ref 중 하나라도 호출 로그가 있으면 409.")
     fun delete(
         @PathVariable workspaceId: UUID,
         @PathVariable promptId: UUID,
@@ -122,6 +130,7 @@ class PromptsController(
             " ? '${Permissions.PROMPT_REF_PUBLISH}' : '${Permissions.PROMPT_WRITE}')"
     )
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "ref 생성", description = "fromRefId 의 instructions 와 추가 입력을 복사해 BRANCH 또는 TAG 를 만든다. BRANCH 는 fromRefId 를 생략하면 빈 instructions 로 만들어지고, TAG 는 fromRefId 가 필요하다. TAG 는 publish 권한이 필요하며 만들면 latest tag 가 된다. 프롬프트당 ref 는 100개까지.")
     fun createRef(
         @PathVariable workspaceId: UUID,
         @PathVariable promptId: UUID,
@@ -139,6 +148,7 @@ class PromptsController(
 
     @GetMapping("/{promptId}/refs")
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.PROMPT_READ}')")
+    @Operation(summary = "ref 목록", description = "type(BRANCH / TAG), name 으로 거른다.")
     fun listRefs(
         @PathVariable workspaceId: UUID,
         @PathVariable promptId: UUID,
@@ -151,6 +161,7 @@ class PromptsController(
 
     @GetMapping("/{promptId}/refs/{refId}")
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.PROMPT_READ}')")
+    @Operation(summary = "ref 조회")
     fun getRef(
         @PathVariable workspaceId: UUID,
         @PathVariable promptId: UUID,
@@ -161,6 +172,7 @@ class PromptsController(
 
     @PatchMapping("/{promptId}/refs/{refId}")
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.PROMPT_WRITE}')")
+    @Operation(summary = "ref 수정", description = "BRANCH 만 수정할 수 있다. TAG 면 400.")
     fun updateRef(
         @PathVariable workspaceId: UUID,
         @PathVariable promptId: UUID,
@@ -181,6 +193,7 @@ class PromptsController(
     @DeleteMapping("/{promptId}/refs/{refId}")
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.PROMPT_WRITE}')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "ref 삭제", description = "TAG 삭제는 publish 권한이 필요하다. default branch, latest tag, 호출 로그가 있는 ref 는 지울 수 없다(409).")
     fun deleteRef(
         @PathVariable workspaceId: UUID,
         @PathVariable promptId: UUID,
@@ -196,6 +209,7 @@ class PromptsController(
     @PostMapping("/{promptId}/refs/{refId}/additional-input-items")
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.PROMPT_WRITE}')")
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "추가 입력 항목 추가", description = "LLM 호출 때 instructions 뒤에 붙는 대화 입력(role + message). position(1부터)을 주면 그 자리에 끼워 넣고, 생략하면 맨 뒤에 붙인다. ref 당 100개까지.")
     fun addAdditionalInput(
         @PathVariable workspaceId: UUID,
         @PathVariable promptId: UUID,
@@ -214,6 +228,7 @@ class PromptsController(
 
     @GetMapping("/{promptId}/refs/{refId}/additional-input-items")
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.PROMPT_READ}')")
+    @Operation(summary = "추가 입력 항목 목록")
     fun listAdditionalInputs(
         @PathVariable workspaceId: UUID,
         @PathVariable promptId: UUID,
@@ -224,6 +239,7 @@ class PromptsController(
 
     @PatchMapping("/{promptId}/refs/{refId}/additional-input-items/{additionalInputItemId}")
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.PROMPT_WRITE}')")
+    @Operation(summary = "추가 입력 항목 수정", description = "position 을 바꾸면 나머지 항목의 순서가 다시 매겨진다.")
     fun updateAdditionalInput(
         @PathVariable workspaceId: UUID,
         @PathVariable promptId: UUID,
@@ -245,6 +261,7 @@ class PromptsController(
     @DeleteMapping("/{promptId}/refs/{refId}/additional-input-items/{additionalInputItemId}")
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.PROMPT_WRITE}')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "추가 입력 항목 삭제", description = "나머지 항목의 순서가 다시 매겨진다.")
     fun deleteAdditionalInput(
         @PathVariable workspaceId: UUID,
         @PathVariable promptId: UUID,
