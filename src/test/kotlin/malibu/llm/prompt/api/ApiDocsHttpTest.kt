@@ -64,6 +64,27 @@ class ApiDocsHttpTest(
         assertTrue(missing.isEmpty(), missing.joinToString("\n"))
     }
 
+    private fun description(method: String, path: String): String =
+        docs.get("paths").get(path).get(method).get("description").asText()
+
+    @Test
+    fun `모든 operation 에 필요 권한이 적혀 있다`() {
+        val missing = docs.get("paths").properties().flatMap { (path, item) ->
+            item.properties()
+                .filterNot { (_, op) -> op.get("description")?.asText().orEmpty().contains("**필요 권한**: ") }
+                .map { (method, _) -> "${method.uppercase()} $path" }
+        }
+        assertTrue(missing.isEmpty(), "필요 권한이 없는 operation: $missing")
+
+        assertTrue(description("get", "/").endsWith("**필요 권한**: 없음. 인증 없이 호출할 수 있다."))
+        assertTrue(description("get", "/me").endsWith("**필요 권한**: 로그인한 사용자 누구나."))
+        assertTrue(description("get", "/workspaces/{workspaceId}/prompts").endsWith("**필요 권한**: workspace 권한 `prompt:read`"))
+        // 기존 설명 뒤에 붙는다
+        val patchPrompt = description("patch", "/workspaces/{workspaceId}/prompts/{promptId}")
+        assertTrue(patchPrompt.startsWith("defaultBranchRefId 는 BRANCH"), patchPrompt)
+        assertTrue(patchPrompt.contains("`prompt_ref:publish` 도 필요하다"), patchPrompt)
+    }
+
     @Test
     fun `PATCH 필드에 null 의미가 적혀 있다`() {
         val ws = schemas.get("WorkspaceUpdateRequest").get("properties")

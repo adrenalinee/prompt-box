@@ -58,6 +58,7 @@ class OpenApiConfig {
             역할 기반(RBAC). scope 는 PLATFORM → ORGANIZATION → WORKSPACE 3단계이며, org 역할은 그 org 의 모든 workspace 역할을 함의한다.
             - 접근할 수 없는(멤버가 아닌) org / workspace 의 리소스는 존재 여부를 숨기기 위해 **404**.
             - 멤버지만 권한이 부족하면 **403** `FORBIDDEN`.
+            - 각 API 설명 끝의 **필요 권한** 에 필요한 권한 코드가 적혀 있다. 어떤 역할이 그 권한을 갖는지는 `GET /authz/catalog` 로 본다.
             - 화면에서 버튼 노출을 정할 때는 `GET /workspaces/{id}/my-permissions`, `GET /organizations/{id}/my-permissions` 를 쓴다.
 
             ## PATCH 규칙

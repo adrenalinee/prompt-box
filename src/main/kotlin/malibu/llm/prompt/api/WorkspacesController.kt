@@ -106,7 +106,7 @@ class WorkspacesController(
     @DeleteMapping("/{workspaceId}")
     @PreAuthorize("@orgAuthz.hasForWorkspace(#workspaceId, '${Permissions.WORKSPACE_DELETE}')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "workspace 삭제", description = "org 권한(workspace:delete)이 필요하다. 그래서 org 의 일반 멤버는 WORKSPACE_ADMIN 이어도 삭제할 수 없다. 프롬프트, API 키, 호출 로그가 남아 있으면 409.")
+    @Operation(summary = "workspace 삭제", description = "workspace 가 아니라 org 에서 권한을 판정하므로, org 의 일반 멤버는 WORKSPACE_ADMIN 이어도 삭제할 수 없다. 프롬프트, API 키, 호출 로그가 남아 있으면 409.")
     fun delete(@PathVariable workspaceId: UUID) {
         workspaceService.delete(workspaceId)
     }

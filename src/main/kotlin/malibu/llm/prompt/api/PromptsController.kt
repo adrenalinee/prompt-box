@@ -96,7 +96,8 @@ class PromptsController(
         "@wsAuthz.has(#workspaceId, '${Permissions.PROMPT_WRITE}')" +
             " and (!#request.latestTagRefId.isPresent() or @wsAuthz.has(#workspaceId, '${Permissions.PROMPT_REF_PUBLISH}'))"
     )
-    @Operation(summary = "프롬프트 수정", description = "defaultBranchRefId 는 BRANCH, latestTagRefId 는 TAG 여야 한다. latestTagRefId 를 보내면(null 로 해제 포함) publish 권한이 필요하다.")
+    @Operation(summary = "프롬프트 수정", description = "defaultBranchRefId 는 BRANCH, latestTagRefId 는 TAG 여야 한다.")
+    @PermissionDoc("workspace 권한 `${Permissions.PROMPT_WRITE}`. latestTagRefId 를 보내면(null 로 해제 포함) `${Permissions.PROMPT_REF_PUBLISH}` 도 필요하다.")
     fun update(
         @PathVariable workspaceId: UUID,
         @PathVariable promptId: UUID,
@@ -130,7 +131,8 @@ class PromptsController(
             " ? '${Permissions.PROMPT_REF_PUBLISH}' : '${Permissions.PROMPT_WRITE}')"
     )
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "ref 생성", description = "fromRefId 의 instructions 와 추가 입력을 복사해 BRANCH 또는 TAG 를 만든다. BRANCH 는 fromRefId 를 생략하면 빈 instructions 로 만들어지고, TAG 는 fromRefId 가 필요하다. TAG 는 publish 권한이 필요하며 만들면 latest tag 가 된다. 프롬프트당 ref 는 100개까지.")
+    @Operation(summary = "ref 생성", description = "fromRefId 의 instructions 와 추가 입력을 복사해 BRANCH 또는 TAG 를 만든다. BRANCH 는 fromRefId 를 생략하면 빈 instructions 로 만들어지고, TAG 는 fromRefId 가 필요하다. TAG 를 만들면 latest tag 가 된다. 프롬프트당 ref 는 100개까지.")
+    @PermissionDoc("workspace 권한. BRANCH 생성은 `${Permissions.PROMPT_WRITE}`, TAG 생성은 `${Permissions.PROMPT_REF_PUBLISH}`.")
     fun createRef(
         @PathVariable workspaceId: UUID,
         @PathVariable promptId: UUID,
@@ -193,7 +195,8 @@ class PromptsController(
     @DeleteMapping("/{promptId}/refs/{refId}")
     @PreAuthorize("@wsAuthz.has(#workspaceId, '${Permissions.PROMPT_WRITE}')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "ref 삭제", description = "TAG 삭제는 publish 권한이 필요하다. default branch, latest tag, 호출 로그가 있는 ref 는 지울 수 없다(409).")
+    @Operation(summary = "ref 삭제", description = "default branch, latest tag, 호출 로그가 있는 ref 는 지울 수 없다(409).")
+    @PermissionDoc("workspace 권한 `${Permissions.PROMPT_WRITE}`. TAG 를 지우려면 `${Permissions.PROMPT_REF_PUBLISH}` 도 필요하다.")
     fun deleteRef(
         @PathVariable workspaceId: UUID,
         @PathVariable promptId: UUID,
