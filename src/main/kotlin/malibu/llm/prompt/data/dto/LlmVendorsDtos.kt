@@ -14,7 +14,8 @@ data class LlmVendorCreateRequest(
 
 data class LlmVendorUpdateRequest(
     val name: String? = null,
-    val description: String? = null,
+    /** null 이면 지운다. */
+    val description: Patch<String?> = Patch.Absent,
 )
 
 data class LlmVendorResponse(

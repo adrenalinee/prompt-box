@@ -21,8 +21,10 @@ data class WorkspaceCreateRequest(
 
 data class WorkspaceUpdateRequest(
     val name: String? = null,
-    val description: String? = null,
-    val defaultModelId: Long? = null,
+    /** null 이면 지운다. */
+    val description: Patch<String?> = Patch.Absent,
+    /** null 이면 기본 모델을 해제한다. */
+    val defaultModelId: Patch<Long?> = Patch.Absent,
 )
 
 data class WorkspaceResponse(

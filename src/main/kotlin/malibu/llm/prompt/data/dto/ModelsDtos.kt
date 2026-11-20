@@ -25,10 +25,11 @@ data class LlmModelUpdateRequest(
     val name: String? = null,
     val modelKey: String? = null,
     val modelType: LlmModelType? = null,
-    val contextWindow: Long? = null,
-    val inputPrice: Long? = null,
-    val outputPrice: Long? = null,
-    val description: String? = null,
+    /** 아래 nullable 필드는 null 이면 지운다. */
+    val contextWindow: Patch<Long?> = Patch.Absent,
+    val inputPrice: Patch<Long?> = Patch.Absent,
+    val outputPrice: Patch<Long?> = Patch.Absent,
+    val description: Patch<String?> = Patch.Absent,
 )
 
 data class LlmModelResponse(

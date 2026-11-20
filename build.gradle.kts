@@ -73,7 +73,7 @@ implementation("org.jetbrains.kotlin:kotlin-reflect")
 
     implementation("malibu.tracer:tracer-webmvc:14.0")
     implementation("io.github.microutils:kotlin-logging:3.0.5")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
     implementation("com.google.cloud.sql:postgres-socket-factory:1.28.0")
     implementation("com.openai:openai-java:4.26.0")
 //    implementation("com.google.genai:google-genai:1.36.0")

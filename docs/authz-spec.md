@@ -351,7 +351,7 @@ select distinct p.code
 |---|---|
 | `GET /prompts`, `GET /prompts/{promptId}` | ws `prompt:read` |
 | `POST /prompts` | ws `prompt:write` |
-| `PATCH /prompts/{promptId}` | ws `prompt:write` (+ `latestTagRefId` 변경 시 `prompt_ref:publish`) |
+| `PATCH /prompts/{promptId}` | ws `prompt:write` (+ `latestTagRefId` 를 보내면(null 로 해제 포함) `prompt_ref:publish`) |
 | `DELETE /prompts/{promptId}` | ws `prompt:delete` |
 | `GET /prompts/{promptId}/refs`, `GET …/refs/{refId}` | ws `prompt:read` |
 | `POST /prompts/{promptId}/refs` | BRANCH: `prompt:write`, TAG: `prompt_ref:publish` |

@@ -27,9 +27,12 @@ data class PromptCreateRequest(
 
 data class PromptUpdateRequest(
     val name: String? = null,
-    val description: String? = null,
+    /** null 이면 지운다. */
+    val description: Patch<String?> = Patch.Absent,
+    /** 프롬프트에는 항상 default branch 가 있어야 하므로 지울 수 없다. null = 변경 없음. */
     val defaultBranchRefId: Long? = null,
-    val latestTagRefId: Long? = null,
+    /** null 이면 latest tag 를 해제한다(publish 권한 필요). */
+    val latestTagRefId: Patch<Long?> = Patch.Absent,
 )
 
 data class AdditionalInputRequest(
@@ -47,7 +50,8 @@ data class PromptRefCreateRequest(
 
 data class PromptRefUpdateRequest(
     val name: String? = null,
-    val description: String? = null,
+    /** null 이면 지운다. */
+    val description: Patch<String?> = Patch.Absent,
     val instructions: String? = null,
 )
 

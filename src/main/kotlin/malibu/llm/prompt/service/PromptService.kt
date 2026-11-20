@@ -1,5 +1,7 @@
 package malibu.llm.prompt.service
 
+import malibu.llm.prompt.data.dto.ifPresent
+import malibu.llm.prompt.data.dto.Patch
 import malibu.llm.prompt.data.InputRole
 import malibu.llm.prompt.data.PromptRefType
 import malibu.llm.prompt.data.dto.PromptRefSearchSpec
@@ -83,17 +85,15 @@ class PromptService(
         workspaceId: UUID,
         promptId: UUID,
         name: String?,
-        description: String?,
+        description: Patch<String?>,
         defaultBranchRefId: Long?,
-        latestTagRefId: Long?,
+        latestTagRefId: Patch<Long?>,
     ): Prompt {
         val prompt = requirePrompt(workspaceId, promptId)
         if (!name.isNullOrBlank()) {
             prompt.name = name
         }
-        if (description != null) {
-            prompt.description = description
-        }
+        description.ifPresent { prompt.description = it }
         if (defaultBranchRefId != null) {
             val ref = requireRefOf(prompt, defaultBranchRefId)
             if (ref.type != PromptRefType.BRANCH) {
@@ -101,12 +101,14 @@ class PromptService(
             }
             prompt.defaultBranch = ref
         }
-        if (latestTagRefId != null) {
-            val ref = requireRefOf(prompt, latestTagRefId)
-            if (ref.type != PromptRefType.TAG) {
-                throw LatestTagMustBeTagException()
+        latestTagRefId.ifPresent { id ->
+            prompt.latestTag = id?.let {
+                val ref = requireRefOf(prompt, it)
+                if (ref.type != PromptRefType.TAG) {
+                    throw LatestTagMustBeTagException()
+                }
+                ref
             }
-            prompt.latestTag = ref
         }
         return promptRepository.save(prompt)
     }
@@ -224,7 +226,7 @@ class PromptService(
         promptId: UUID,
         refId: Long,
         name: String?,
-        description: String?,
+        description: Patch<String?>,
         instructions: String?,
     ): PromptRef {
         val ref = requireRef(workspaceId, promptId, refId)
@@ -234,9 +236,7 @@ class PromptService(
         if (!name.isNullOrBlank()) {
             ref.name = name
         }
-        if (description != null) {
-            ref.description = description
-        }
+        description.ifPresent { ref.description = it }
         if (instructions != null) {
             ref.instructions = instructions
         }

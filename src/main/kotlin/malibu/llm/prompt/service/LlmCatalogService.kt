@@ -1,5 +1,7 @@
 package malibu.llm.prompt.service
 
+import malibu.llm.prompt.data.dto.ifPresent
+import malibu.llm.prompt.data.dto.Patch
 import malibu.llm.prompt.data.LlmModelType
 import malibu.llm.prompt.data.dto.LlmApiKeySearchSpec
 import malibu.llm.prompt.data.dto.LlmModelSearchSpec
@@ -59,16 +61,14 @@ class LlmCatalogService(
     fun updateVendor(
         vendorId: UUID,
         name: String?,
-        description: String?,
+        description: Patch<String?>,
     ): LlmVendor {
         val vendor = llmVendorRepository.findById(vendorId)
             .orElseThrow { VendorNotFoundException(vendorId) }
         if (!name.isNullOrBlank()) {
             vendor.name = name
         }
-        if (description != null) {
-            vendor.description = description
-        }
+        description.ifPresent { vendor.description = it }
         return llmVendorRepository.save(vendor)
     }
 
@@ -148,10 +148,10 @@ class LlmCatalogService(
         name: String?,
         modelKey: String?,
         modelType: LlmModelType?,
-        contextWindow: Long?,
-        inputPrice: Long?,
-        outputPrice: Long?,
-        description: String?,
+        contextWindow: Patch<Long?>,
+        inputPrice: Patch<Long?>,
+        outputPrice: Patch<Long?>,
+        description: Patch<String?>,
     ): LlmModel {
         val model = llmModelRepository.findById(modelId)
             .orElseThrow { ModelNotFoundException(modelId) }
@@ -169,18 +169,10 @@ class LlmCatalogService(
         if (modelType != null) {
             model.modelType = modelType
         }
-        if (contextWindow != null) {
-            model.contextWindow = contextWindow
-        }
-        if (inputPrice != null) {
-            model.inputPrice = inputPrice
-        }
-        if (outputPrice != null) {
-            model.outputPrice = outputPrice
-        }
-        if (description != null) {
-            model.description = description
-        }
+        contextWindow.ifPresent { model.contextWindow = it }
+        inputPrice.ifPresent { model.inputPrice = it }
+        outputPrice.ifPresent { model.outputPrice = it }
+        description.ifPresent { model.description = it }
         return llmModelRepository.save(model)
     }
 
@@ -247,7 +239,7 @@ class LlmCatalogService(
         vendorId: UUID?,
         name: String?,
         value: String?,
-        description: String?,
+        description: Patch<String?>,
     ): LlmApiKey {
         val apiKey = getApiKey(workspaceId, apiKeyId)
         if (vendorId != null) {
@@ -262,9 +254,7 @@ class LlmCatalogService(
             apiKey.value = apiKeyCipher.encrypt(value)
             apiKey.last5 = value.takeLast(5)
         }
-        if (description != null) {
-            apiKey.description = description
-        }
+        description.ifPresent { apiKey.description = it }
         return llmApiKeyRepository.save(apiKey)
     }
 

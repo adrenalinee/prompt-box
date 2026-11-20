@@ -84,11 +84,11 @@ class PromptsController(
         return promptService.getPrompt(workspaceId, promptId).toResponse()
     }
 
-    /** latestTag 를 바꾸는 것은 publish 다. */
+    /** latestTag 를 바꾸거나 해제(null)하는 것은 publish 다. */
     @PatchMapping("/{promptId}")
     @PreAuthorize(
         "@wsAuthz.has(#workspaceId, '${Permissions.PROMPT_WRITE}')" +
-            " and (#request.latestTagRefId == null or @wsAuthz.has(#workspaceId, '${Permissions.PROMPT_REF_PUBLISH}'))"
+            " and (!#request.latestTagRefId.isPresent() or @wsAuthz.has(#workspaceId, '${Permissions.PROMPT_REF_PUBLISH}'))"
     )
     fun update(
         @PathVariable workspaceId: UUID,

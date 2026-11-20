@@ -1,5 +1,7 @@
 package malibu.llm.prompt.service
 
+import malibu.llm.prompt.data.dto.ifPresent
+import malibu.llm.prompt.data.dto.Patch
 import jakarta.persistence.EntityManager
 import malibu.llm.prompt.authz.Roles
 import malibu.llm.prompt.data.dto.WorkspaceSearchSpec
@@ -101,21 +103,19 @@ class WorkspaceService(
     fun update(
         workspaceId: UUID,
         name: String?,
-        description: String?,
-        defaultModelId: Long?,
+        description: Patch<String?>,
+        defaultModelId: Patch<Long?>,
     ): Workspace {
         val workspace = workspaceRepository.findById(workspaceId)
             .orElseThrow { WorkspaceNotFoundException(workspaceId) }
         if (!name.isNullOrBlank()) {
             workspace.name = name
         }
-        if (description != null) {
-            workspace.description = description
-        }
-        if (defaultModelId != null) {
-            val defaultModel = llmModelRepository.findById(defaultModelId)
-                .orElseThrow { ModelNotFoundException(defaultModelId) }
-            workspace.defaultModel = defaultModel
+        description.ifPresent { workspace.description = it }
+        defaultModelId.ifPresent { id ->
+            workspace.defaultModel = id?.let {
+                llmModelRepository.findById(it).orElseThrow { ModelNotFoundException(it) }
+            }
         }
         return workspaceRepository.save(workspace)
     }

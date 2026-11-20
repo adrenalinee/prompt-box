@@ -22,7 +22,8 @@ data class LlmApiKeyUpdateRequest(
     val vendorId: UUID? = null,
     val name: String? = null,
     val value: String? = null,
-    val description: String? = null,
+    /** null 이면 지운다. */
+    val description: Patch<String?> = Patch.Absent,
 )
 
 data class LlmApiKeyResponse(
